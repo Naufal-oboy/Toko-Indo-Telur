@@ -1,5 +1,8 @@
-# Logs
-logs
+
+# ==================================
+# LOGS
+# ==================================
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,18 +10,65 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# ==================================
+# NODE.JS & REACT
+# ==================================
+node_modules/
+dist/
+dist-ssr/
 *.local
 
-# Editor directories and files
+# ==================================
+# ENVIRONMENT & SECRETS
+# ==================================
+.env
+.env.*
+!.env.example
+
+# ==================================
+# PYTHON & AI SERVICE
+# ==================================
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# ==================================
+# DATABASE BACKUP
+# ==================================
+*.dump
+*.backup
+*.bak
+
+# ==================================
+# EDITOR
+# ==================================
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+.idea/
+
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# ==================================
+# OPERATING SYSTEM
+# ==================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==================================
+# PRIVATE DATA
+# ==================================
+data/private/
+
+
+
