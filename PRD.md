@@ -15,6 +15,8 @@
 
 > **Status perubahan scope:** Pengaturan stok otomatis, sinkronisasi data server, chatbot pertanyaan harga/stok, dan ekspor CSV **dipertahankan sebagai fitur rencana tim** karena tercantum dalam Project Plan. Keempatnya merupakan perluasan dari use case awal yang masih harus dikonfirmasi kepada PIC UMKM dan Tim Asah. Tidak ada fitur lama yang dihapus dari PRD ini.
 
+> **Status implementasi per 21 November 2026:** Backend Express sudah dapat memeriksa koneksi PostgreSQL. Migration initial telah diterapkan untuk produk, transaksi, item transaksi, pergerakan stok, dan catatan sinkronisasi. Constraint untuk nominal, kuantitas, dan field snapshot nota; trigger untuk total/audit stok/pencegahan stok negatif; serta mekanisme idempotency telah diuji. CRUD, endpoint penjualan, sinkronisasi aplikasi, chatbot, cetak, dan fitur offline belum diimplementasikan.
+
 ## 1. Ringkasan produk
 
 Toko Indo Telur melayani pesanan grosir sembako melalui WhatsApp dan gudang. Pencatatan dan pembuatan nota masih manual oleh satu orang. Ketika volume chat meningkat, ada pesan terlambat dibalas dan nota disiapkan mendekati waktu pengantaran. Produk ini merencanakan kasir web dengan nota digital, pengelolaan produk/stok, offline-first, sinkronisasi, cetak nota thermal, backup/restore, serta chatbot pada nomor WhatsApp uji untuk sapaan, format pemesanan, dan pengecekan stok/harga melalui server.
@@ -209,36 +211,36 @@ Seluruh butir di bawah merupakan **target**, bukan pernyataan fitur sudah selesa
 
 **Belum disepakati:** SLA/uptime, angka batas latensi, target throughput, kebijakan retensi data produksi, dan dukungan lintas versi Android. Tidak ditetapkan angka spekulatif di PRD ini.
 
-## 10. Rancangan teknis (usulan, bukan keputusan final)
+## 10. Rancangan teknis dan baseline implementasi
 
 ### 10.1 Komponen
 
 - **Frontend:** React untuk kasir, produk, riwayat, stok, cetak, ekspor, backup/restore, dan status sinkronisasi.
 - **Penyimpanan lokal:** mekanisme browser yang dipilih tim untuk menyimpan nota, produk, stok, dan antrean transaksi offline.
-- **Backend aplikasi:** endpoint untuk transaksi, produk, harga/stok, sinkronisasi, dan penghubung WhatsApp/AI. Bahasa/framework belum ditetapkan dalam Project Plan.
-- **Database server:** penyimpanan produk, stok, dan transaksi online; penyedia/engine belum diputuskan.
+- **Backend aplikasi:** Node.js + Express. Endpoint `GET /api/health` dan `GET /api/db-check` tersedia; endpoint transaksi, produk, harga/stok, sinkronisasi, dan penghubung WhatsApp/AI masih akan dibuat.
+- **Database server:** PostgreSQL melalui driver `pg`. Migration awal dan mekanisme pencatatan migration telah diterapkan untuk penyimpanan produk, stok, dan transaksi online.
 - **Layanan AI:** model klasifikasi dengan FastAPI **atau** Flask, serta akses ke API proprietary untuk saran jawaban.
 - **WhatsApp:** integrasi berbasis nomor uji/sandbox, bergantung akses yang disediakan dan ketentuan platform.
 - **Data Science:** Python/Pandas untuk olah data, analisis, validasi, dan dataset contoh.
 
-### 10.2 Entity awal (usulan desain)
+### 10.2 Baseline skema database (sudah diimplementasikan)
 
-| Entitas | Field konseptual | Catatan |
+| Entitas | Field utama | Catatan |
 | --- | --- | --- |
-| Product | id, name, current_price, is_active | Jangan mengubah snapshot harga nota lama |
-| Inventory | product_id, local_quantity, server_quantity, updated_at | Perlu aturan rekonsiliasi saat offline |
-| Invoice | id, created_at, total, sync_status | ID stabil saat retry |
-| InvoiceItem | invoice_id, product_id, product_name_snapshot, unit_price_snapshot, quantity, subtotal | Riwayat harus dapat ditampilkan walau produk berubah |
-| InventoryMovement | id, product_id, invoice_id, quantity_delta | Usulan untuk audit dan mencegah overwrite stok |
-| SyncAttempt | id, invoice_id, last_attempt_at, result | Usulan untuk retry dan debugging |
-| ChatTestSample | text_anonymized, intent_label, expected_reply_type | Data dummy, tidak berisi nomor pelanggan asli |
+| `products` | id, sku, name, description, price, stock, unit, is_active | Harga saat ini; soft delete memakai `is_active`. |
+| `transactions` | id, client_transaction_id, invoice_number, transaction_date, total_amount, payment_method, payment_status | UUID perangkat dan nomor nota unik. |
+| `transaction_items` | transaction_id, product_id, product_name_snapshot, unit_snapshot, quantity, unit_price, subtotal | Snapshot memastikan nota lama tidak berubah. |
+| `stock_movements` | product_id, transaction_id, movement_type, quantity_change, stock_before, stock_after | Audit immutable; trigger mengubah stok secara atomik dan mencegah nilai negatif. |
+| `sync_records` | client_transaction_id, device_id, server_transaction_id, status, error_message | Gate idempotency untuk retry transaksi offline. |
 
-Field dan nama tabel di atas **bukan skema final yang telah disetujui**; tentukan kontrak bersama sebelum implementasi.
+Skema ini adalah baseline implementasi untuk MVP. Perubahan kompatibel ditambahkan melalui migration baru; jangan mengubah migration yang telah dijalankan. ERD, tipe data, constraint, indeks, dan kontrak idempotency dirinci dalam [Database Schema](./docs/database-schema.md).
 
 ### 10.3 Endpoint awal (contoh kontrak untuk diskusi)
 
 | Operasi | Usulan endpoint | Tujuan |
 | --- | --- | --- |
+| Health check | `GET /api/health` | **Sudah tersedia** untuk memeriksa backend. |
+| Database check | `GET /api/db-check` | **Sudah tersedia** untuk memeriksa koneksi PostgreSQL. |
 | Daftar / ubah produk | `GET/POST/PATCH /api/products` | CRUD produk dan harga |
 | Simpan nota | `POST /api/invoices` | Menyimpan transaksi valid |
 | Riwayat nota | `GET /api/invoices` | Menampilkan transaksi terdahulu |
@@ -248,7 +250,7 @@ Field dan nama tabel di atas **bukan skema final yang telah disetujui**; tentuka
 | Saran respons | `POST /ai/suggest-reply` | Memanggil API generatif di sisi server |
 | Pesan masuk | Webhook sesuai platform WhatsApp yang dipilih | Menerima pesan nomor uji |
 
-Path di atas hanya **contoh rancangan**, bukan endpoint yang sudah dibuat. Gunakan skema error, autentikasi, dan rate limit yang ditetapkan tim pada implementasi.
+Selain health check dan database check, path di atas masih **contoh rancangan**, bukan endpoint yang sudah dibuat. Gunakan satu database transaction untuk penyimpanan nota, item, pergerakan stok, dan status sinkronisasi; gunakan skema error, autentikasi, dan rate limit yang ditetapkan tim pada implementasi.
 
 ## 11. Rencana pengujian dan acceptance scenarios
 
@@ -271,6 +273,8 @@ Path di atas hanya **contoh rancangan**, bukan endpoint yang sudah dibuat. Gunak
 | TC-15 | Minta pemilik mencoba alur lengkap saat demo | Feedback, kendala, dan tindakan lanjut dicatat. |
 
 **Pelacakan:** catat input, expected, actual, pass/fail, bug, PIC, tanggal retest melalui GitHub Issues/project board dan lembar hasil uji. Hasil pengujian aktual belum tersedia.
+
+**Hasil pengujian database awal (21 November 2026):** migration diterapkan dan dapat dijalankan ulang tanpa duplikasi; lima tabel aplikasi dan lima foreign key terdeteksi; harga negatif, stok negatif, kuantitas nol, dan penjualan yang menghasilkan stok negatif ditolak. Pengujian menggunakan transaksi yang di-rollback sehingga tidak meninggalkan data dummy. Skenario lain pada tabel ini masih merupakan rencana pengujian.
 
 ## 12. Roadmap dan pembagian pekerjaan
 

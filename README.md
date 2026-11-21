@@ -4,9 +4,20 @@
 
 Sistem Nota Digital & Chatbot Toko Indo Telur adalah rancangan aplikasi kasir berbasis web untuk membantu usaha grosir sembako di Kota Bontang membuat nota lebih cepat, mengelola produk dan stok, serta memberikan respons awal terhadap pesan pelanggan. Aplikasi direncanakan dapat digunakan di browser HP Android, termasuk untuk pencatatan transaksi saat koneksi internet tidak tersedia.
 
-**Dokumentasi kebutuhan lengkap:** [Product Requirements Document (PRD)](./PRD.md).
+**Dokumentasi kebutuhan lengkap:** [Product Requirements Document (PRD)](./PRD.md). **Dokumentasi database:** [Database Schema](./docs/database-schema.md).
 
 > **Catatan status:** Fitur di bawah adalah **ruang lingkup yang direncanakan dalam Project Plan**, bukan klaim bahwa fitur sudah diimplementasikan, diuji, atau tersedia secara publik. MVP ini ditujukan untuk demonstrasi dan validasi UMKM, bukan langsung untuk operasional produksi.
+
+## Status implementasi saat ini
+
+Fondasi backend dan database telah tersedia untuk tahap berikutnya:
+
+- Backend menggunakan Node.js, Express, dan driver `pg`; endpoint `GET /api/health` serta `GET /api/db-check` telah diuji.
+- PostgreSQL memiliki migration idempoten untuk `products`, `transactions`, `transaction_items`, `stock_movements`, dan `sync_records`.
+- Harga dan total memakai `NUMERIC`; skema nota menyediakan snapshot produk/harga; perubahan stok dicatat secara immutable dan tidak dapat menghasilkan stok negatif.
+- Migration dan constraint database telah diverifikasi terhadap database `toko_indo_telur`; data uji selalu di-rollback.
+
+CRUD produk, endpoint transaksi, sinkronisasi frontend, chatbot, cetak, dan fitur offline **belum diimplementasikan**. Detail ERD, constraint, dan cara menjalankan database tersedia di [Database Schema](./docs/database-schema.md).
 
 ## Latar belakang
 
@@ -65,8 +76,8 @@ Pilihan di bawah mengikuti Project Plan; komponen yang belum diputuskan **tidak 
 | Model AI | Model klasifikasi maksud pesan yang dilatih dari data yang diizinkan/dummy | Dalam perencanaan |
 | Gen AI | API model proprietary untuk menyusun saran balasan | Penyedia belum dipilih |
 | REST API AI | **FastAPI atau Flask** | Pilih salah satu saat implementasi |
-| Backend aplikasi | API untuk produk, transaksi, sinkronisasi, dan chatbot | Framework belum ditetapkan |
-| Database online | Data produk, stok, dan transaksi | Produk/penyedia belum dipilih |
+| Backend aplikasi | Node.js + Express untuk API produk, transaksi, sinkronisasi, dan chatbot | Fondasi server tersedia; API bisnis belum dibuat |
+| Database online | PostgreSQL + `pg` untuk produk, stok, transaksi, dan sinkronisasi | Skema initial dan migration sudah diterapkan |
 | Penyimpanan offline | Penyimpanan lokal browser dan berkas cadangan | Implementasi teknis belum diputuskan |
 | Deployment | Hosting publik untuk web dan API | Penyedia/URL belum tersedia |
 | Integrasi chat | WhatsApp nomor uji/sandbox | Bergantung izin dan akses layanan |
@@ -88,7 +99,7 @@ flowchart LR
     J[Data Science: data olahan & analisis] --> H
 ```
 
-Diagram ini adalah **rancangan awal**, bukan representasi infrastruktur yang sudah berjalan. Web kasir memerlukan akses internet pada penyiapan awal sesuai strategi caching yang nanti dipilih; chatbot, server, API generatif, dan sinkronisasi memerlukan internet.
+Diagram ini adalah **rancangan arsitektur target**. Saat ini backend Express dan database PostgreSQL telah tersedia; web kasir, chatbot, API AI, sinkronisasi, dan integrasi WhatsApp belum diimplementasikan. Web kasir memerlukan akses internet pada penyiapan awal sesuai strategi caching yang nanti dipilih; chatbot, server, API generatif, dan sinkronisasi memerlukan internet.
 
 ## Dokumentasi pengembangan
 
@@ -111,9 +122,17 @@ Struktur repository yang **diusulkan** (akan disesuaikan dengan implementasi):
 └── PRD.md
 ```
 
-### Menjalankan aplikasi
+### Menjalankan backend dan migration
 
-Langkah instalasi dan perintah menjalankan layanan akan ditambahkan setelah struktur proyek serta backend/penyedia database diputuskan. Tidak ada URL demo atau konfigurasi `.env` yang dinyatakan siap pada tahap dokumentasi awal ini. **Jangan mengunggah kunci API, token WhatsApp, atau data pelanggan ke repository.**
+Dari folder `backend/`, setelah `.env` PostgreSQL dikonfigurasi secara lokal:
+
+```bash
+npm run migrate
+npm run db:verify
+npm run dev
+```
+
+`npm run migrate` aman dijalankan ulang: runner menggunakan lock PostgreSQL dan catatan checksum pada `schema_migrations`. `npm run db:verify` memeriksa skema dan constraint dengan data uji yang di-rollback. Tidak ada URL demo yang dinyatakan siap pada tahap ini. **Jangan mengunggah kunci API, token WhatsApp, kredensial database, atau data pelanggan ke repository.**
 
 ### Data dan dokumentasi model AI
 
@@ -141,6 +160,8 @@ Nilai metrik dan tautan model **belum tersedia** sehingga tidak dicantumkan seba
 **Tanggal resmi** setiap pekan masih menunggu konfirmasi jadwal capstone; tabel ini tidak menetapkan tanggal kalender.
 
 ## Pengujian yang direncanakan
+
+**Pengujian yang sudah dilakukan untuk database:** migration dapat dijalankan ulang tanpa duplikasi; lima tabel aplikasi dan lima foreign key tersedia; harga/stok/kuantitas invalid ditolak; perubahan stok melewati audit trail dan stok negatif dicegah. Seluruh data uji di-rollback. Skenario lain di bagian ini masih merupakan rencana pengujian.
 
 - Nota: total otomatis, riwayat, input kosong/nol/huruf ditolak.
 - Produk dan stok: validasi harga, perubahan harga tidak mengubah nota lama, penjualan tidak melebihi stok.
