@@ -15,7 +15,7 @@
 
 > **Status perubahan scope:** Pengaturan stok otomatis, sinkronisasi data server, chatbot pertanyaan harga/stok, dan ekspor CSV **dipertahankan sebagai fitur rencana tim** karena tercantum dalam Project Plan. Keempatnya merupakan perluasan dari use case awal yang masih harus dikonfirmasi kepada PIC UMKM dan Tim Asah. Tidak ada fitur lama yang dihapus dari PRD ini.
 
-> **Status implementasi per 21 November 2026:** Backend Express sudah dapat memeriksa koneksi PostgreSQL. Migration initial telah diterapkan untuk produk, transaksi, item transaksi, pergerakan stok, dan catatan sinkronisasi. Constraint untuk nominal, kuantitas, dan field snapshot nota; trigger untuk total/audit stok/pencegahan stok negatif; serta mekanisme idempotency telah diuji. CRUD, endpoint penjualan, sinkronisasi aplikasi, chatbot, cetak, dan fitur offline belum diimplementasikan.
+> **Status implementasi per 21 November 2026:** Backend Express sudah dapat memeriksa koneksi PostgreSQL. Migration initial telah diterapkan untuk produk, transaksi, item transaksi, pergerakan stok, dan catatan sinkronisasi. Constraint untuk nominal, kuantitas, dan field snapshot nota; trigger untuk total/audit stok/pencegahan stok negatif; serta mekanisme idempotency telah diuji. Product API CRUD telah diimplementasikan dan diuji. Endpoint penjualan, sinkronisasi aplikasi, chatbot, cetak, dan fitur offline belum diimplementasikan.
 
 ## 1. Ringkasan produk
 
@@ -217,7 +217,7 @@ Seluruh butir di bawah merupakan **target**, bukan pernyataan fitur sudah selesa
 
 - **Frontend:** React untuk kasir, produk, riwayat, stok, cetak, ekspor, backup/restore, dan status sinkronisasi.
 - **Penyimpanan lokal:** mekanisme browser yang dipilih tim untuk menyimpan nota, produk, stok, dan antrean transaksi offline.
-- **Backend aplikasi:** Node.js + Express. Endpoint `GET /api/health` dan `GET /api/db-check` tersedia; endpoint transaksi, produk, harga/stok, sinkronisasi, dan penghubung WhatsApp/AI masih akan dibuat.
+- **Backend aplikasi:** Node.js + Express. Endpoint health check, database check, dan Product API tersedia; endpoint transaksi, sinkronisasi, serta penghubung WhatsApp/AI masih akan dibuat.
 - **Database server:** PostgreSQL melalui driver `pg`. Migration awal dan mekanisme pencatatan migration telah diterapkan untuk penyimpanan produk, stok, dan transaksi online.
 - **Layanan AI:** model klasifikasi dengan FastAPI **atau** Flask, serta akses ke API proprietary untuk saran jawaban.
 - **WhatsApp:** integrasi berbasis nomor uji/sandbox, bergantung akses yang disediakan dan ketentuan platform.
@@ -241,16 +241,20 @@ Skema ini adalah baseline implementasi untuk MVP. Perubahan kompatibel ditambahk
 | --- | --- | --- |
 | Health check | `GET /api/health` | **Sudah tersedia** untuk memeriksa backend. |
 | Database check | `GET /api/db-check` | **Sudah tersedia** untuk memeriksa koneksi PostgreSQL. |
-| Daftar / ubah produk | `GET/POST/PATCH /api/products` | CRUD produk dan harga |
+| Daftar produk | `GET /api/products` | **Sudah tersedia** untuk mengambil semua produk dengan urutan konsisten. |
+| Detail produk | `GET /api/products/:id` | **Sudah tersedia**; ID divalidasi dan produk yang tidak ada menghasilkan 404. |
+| Tambah produk | `POST /api/products` | **Sudah tersedia**; validasi nama/harga dan SKU unik, dengan stok awal 0. |
+| Ubah produk | `PUT /api/products/:id` | **Sudah tersedia**; stok tidak dapat diubah melalui endpoint ini. |
+| Hapus produk | `DELETE /api/products/:id` | **Sudah tersedia** bila tidak memiliki relasi; konflik riwayat menghasilkan 409. |
 | Simpan nota | `POST /api/invoices` | Menyimpan transaksi valid |
 | Riwayat nota | `GET /api/invoices` | Menampilkan transaksi terdahulu |
 | Sinkronisasi batch | `POST /api/sync/invoices` | Mengirim transaksi offline secara idempoten |
-| Baca stok/harga | `GET /api/products/:id` | Lookup data server untuk aplikasi/bot |
+| Baca stok/harga untuk aplikasi/bot | `GET /api/products/:id` | Memakai endpoint detail produk yang sama secara read-only. |
 | Klasifikasi intent | `POST /ai/predict-intent` | Inferensi model yang disajikan FastAPI/Flask |
 | Saran respons | `POST /ai/suggest-reply` | Memanggil API generatif di sisi server |
 | Pesan masuk | Webhook sesuai platform WhatsApp yang dipilih | Menerima pesan nomor uji |
 
-Selain health check dan database check, path di atas masih **contoh rancangan**, bukan endpoint yang sudah dibuat. Gunakan satu database transaction untuk penyimpanan nota, item, pergerakan stok, dan status sinkronisasi; gunakan skema error, autentikasi, dan rate limit yang ditetapkan tim pada implementasi.
+Selain health check, database check, dan Product API, path di atas masih **contoh rancangan**, bukan endpoint yang sudah dibuat. Gunakan satu database transaction untuk penyimpanan nota, item, pergerakan stok, dan status sinkronisasi; gunakan skema error, autentikasi, dan rate limit yang ditetapkan tim pada implementasi.
 
 ## 11. Rencana pengujian dan acceptance scenarios
 
@@ -275,6 +279,8 @@ Selain health check dan database check, path di atas masih **contoh rancangan**,
 **Pelacakan:** catat input, expected, actual, pass/fail, bug, PIC, tanggal retest melalui GitHub Issues/project board dan lembar hasil uji. Hasil pengujian aktual belum tersedia.
 
 **Hasil pengujian database awal (21 November 2026):** migration diterapkan dan dapat dijalankan ulang tanpa duplikasi; lima tabel aplikasi dan lima foreign key terdeteksi; harga negatif, stok negatif, kuantitas nol, dan penjualan yang menghasilkan stok negatif ditolak. Pengujian menggunakan transaksi yang di-rollback sehingga tidak meninggalkan data dummy. Skenario lain pada tabel ini masih merupakan rencana pengujian.
+
+**Hasil pengujian Product API awal (21 November 2026):** endpoint daftar/detail, produk tidak ditemukan, ID tidak valid, pembuatan valid, harga negatif, SKU duplikat, pembaruan, larangan perubahan stok langsung, penghapusan aman, dan konflik penghapusan produk berelasi telah diuji dengan hasil sesuai status HTTP yang diharapkan. Data uji dibersihkan setelah pengujian.
 
 ## 12. Roadmap dan pembagian pekerjaan
 
