@@ -1,0 +1,203 @@
+text,intent
+halo,sapaan
+halo kak,sapaan
+halo bu,sapaan
+halo pak,sapaan
+halo admin,sapaan
+halo toko indo telur,sapaan
+selamat pagi,sapaan
+selamat pagi bu,sapaan
+selamat pagi kak,sapaan
+selamat siang,sapaan
+selamat siang pak,sapaan
+selamat siang admin,sapaan
+selamat sore,sapaan
+selamat sore bu,sapaan
+selamat malam,sapaan
+selamat malam kak,sapaan
+assalamualaikum,sapaan
+assalamualaikum bu,sapaan
+assalamualaikum pak,sapaan
+assalamualaikum toko indo telur,sapaan
+permisi,sapaan
+permisi bu,sapaan
+permisi kak,sapaan
+permisi mau tanya,sapaan
+pagi toko indo telur,sapaan
+siang bu,sapaan
+sore kak,sapaan
+malam bu,sapaan
+halo selamat pagi,sapaan
+halo permisi,sapaan
+punten kak,sapaan
+punten bu,sapaan
+halo masih buka?,sapaan
+pagi admin,sapaan
+siang pak,sapaan
+sore admin,sapaan
+malam pak,sapaan
+halo apakah ada orang?,sapaan
+permisi selamat siang,sapaan
+assalamualaikum warahmatullahi wabarakatuh,sapaan
+mau pesan,format_pesanan
+saya mau pesan,format_pesanan
+cara pesan gimana?,format_pesanan
+gimana cara order di sini?,format_pesanan
+format pesanan gimana kak?,format_pesanan
+tolong kirim format order dong,format_pesanan
+bisa pesan telur 2 rak?,format_pesanan
+mau psn telor 3 rak sama gula 5 kg,format_pesanan
+saya mau order beras 5 karung,format_pesanan
+mau beli minyak goreng 2 dus,format_pesanan
+bisa order grosir lewat wa?,format_pesanan
+cara belanja untuk warung gimana bu?,format_pesanan
+kirim format pemesanan ya min,format_pesanan
+mau pesen tepung terigu 10 kg,format_pesanan
+saya ingin memesan sembako untuk toko,format_pesanan
+bisa pesan mie instan 3 dus gak?,format_pesanan
+mau order gulaa 10 kg dan kecap 5 botol,format_pesanan
+gimana format pemesanannya kak?,format_pesanan
+tolong catat pesanan telur 5 rak,format_pesanan
+saya mau beli garam 10 pak sama beras 2 karung,format_pesanan
+bisa pesen sekarang untuk diantar besok?,format_pesanan
+cara pesan grosir gimana pak?,format_pesanan
+mau order barang warung bu,format_pesanan
+bisa bantu buatkan pesanan saya?,format_pesanan
+format chat order seperti apa ya?,format_pesanan
+mau pesan kopi 4 renteng dan gula 3 kg,format_pesanan
+saya mau pesan sembako lewat sini,format_pesanan
+bisa pesan migor 6 pouch?,format_pesanan
+mau beli telor 10 rak untuk dagang,format_pesanan
+kalau mau pesan kirim data apa saja?,format_pesanan
+order beras medium 4 karung ya bu,format_pesanan
+pesan kecap manis 1 dus dong kak,format_pesanan
+mau tambah pesanan tepung 5 kg,format_pesanan
+sy mau psn mie goreng 2 dus,format_pesanan
+gimana langkah pemesanannya min?,format_pesanan
+tolong info cara order sembako,format_pesanan
+saya mau borong telor 8 rak,format_pesanan
+mau pesan kebutuhan warung hari ini,format_pesanan
+bisa order campuran telur beras gula?,format_pesanan
+kirimkan panduan format pesan barang,format_pesanan
+stok telur ada?,cek_stok
+stok telor ada?,cek_stok
+telor ready ga?,cek_stok
+minyak goreng masih ready?,cek_stok
+gula pasir masih tersedia?,cek_stok
+gulaa ada stok gak kak?,cek_stok
+beras 5kg ada stok?,cek_stok
+tepung terigu redy gak kak?,cek_stok
+mie instan 1 dus masih ada?,cek_stok
+stok kecap manis masih banyak?,cek_stok
+garam dapur ada ga?,cek_stok
+stok ada?,cek_stok
+cek stok telur hari ini,cek_stok
+cek stok gula pasir dong,cek_stok
+apakah beras medium masih ready?,cek_stok
+migor 2 liter stoknya masih ada?,cek_stok
+telur ayam ras ready berapa rak?,cek_stok
+stok mie goreng masih tersedia gak?,cek_stok
+trigu 1 kg redi ga bu?,cek_stok
+susu kental manis masih ada stok?,cek_stok
+kopi hitam sachet stoknya ready?,cek_stok
+stok sembako hari ini lengkap ga?,cek_stok
+apakah stok telur kosong atau ada?,cek_stok
+gula 1kg masih ada gak di gudang?,cek_stok
+beras medium 5kg ready gak min?,cek_stok
+minyak goreng 2l masih tersedia gak?,cek_stok
+cek ketersediaan stok tepung terigu,cek_stok
+kecap manis 600 ml stok aman gak?,cek_stok
+garam halus 500g ready gak bu?,cek_stok
+telor ayam masih banyak stoknya?,cek_stok
+stok kopi renteng masih ada?,cek_stok
+cek stok barang di gudang dong,cek_stok
+apakah gula pasir lagi habis?,cek_stok
+mie instan dus ready atau kosong?,cek_stok
+minyak goreng lagi kosong ya?,cek_stok
+stok beras masih aman gak kak?,cek_stok
+susu kaleng masih tersedia ga?,cek_stok
+telur 1 rak ready hari ini?,cek_stok
+info ketersediaan stok kecap manis,cek_stok
+apakah garam dapur masih ada stok?,cek_stok
+stok tepung terigu masih tersedia?,cek_stok
+harga gula berapa?,cek_harga
+harga gulaa berapa?,cek_harga
+beras 5kg brp?,cek_harga
+gulaa sekilo berapa?,cek_harga
+telor 1 rak berapaan?,cek_harga
+hrg minyak goreng 2 liter brp?,cek_harga
+daftar harga sembako hari ini,cek_harga
+berapa harga tepung terigu per kg?,cek_harga
+mie goreng sedus brapa kak?,cek_harga
+harga grosir telur hari ini berapa?,cek_harga
+harga berapa?,cek_harga
+cek harga telur ayam ras,cek_harga
+cek harga beras medium 5 kg,cek_harga
+migor 2 liter harganya berapa bu?,cek_harga
+harga kecap manis 600 ml brp?,cek_harga
+garam dapur 500 g berapa satu pak?,cek_harga
+berapaan harga gula pasir sekilo?,cek_harga
+harga kopi hitam 1 renteng brp min?,cek_harga
+susu kental manis harganya berapa?,cek_harga
+info harga telur per rak dong,cek_harga
+hrga tepung trigu 1kg brp kak?,cek_harga
+harga mie instan 1 dus sekarang berapa?,cek_harga
+beras 5 kg lagi naik atau berapa sekarang?,cek_harga
+berapa harga grosir minyak goreng?,cek_harga
+cek daftar harga barang hari ini,cek_harga
+telur ayam serak brapa duit?,cek_harga
+gula pasir 1 kg harganya brp ya?,cek_harga
+kecap manis botol berapaan bu?,cek_harga
+garam halus per pak brp?,cek_harga
+kopi sachet renteng harganya berapa?,cek_harga
+susu kaleng 370g berapa harganya?,cek_harga
+tepung terigu sekilo brapa pak?,cek_harga
+mie instan goreng dus brp sekarang?,cek_harga
+harga telur hari ini turun atau naik?,cek_harga
+minta pricelist sembako terbaru dong,cek_harga
+harga beras karung 5kg berapa kak?,cek_harga
+berapa harga migor pouch 2 liter?,cek_harga
+cek harga kecap sama garam dong,cek_harga
+harga sembako paling update berapa ya?,cek_harga
+info harga grosir gula pasir hari ini,cek_harga
+berapa harga telur ayam per rak sekarang?,cek_harga
+pengantaran biasanya berapa hari ya?,lainnya
+bisa bayar transfer minggu depan?,lainnya
+nota kemarin ada yang salah hitung,lainnya
+gudang buka sampai jam berapa?,lainnya
+bisa kirim ke luar kota gak?,lainnya
+kemarin telur ada yang pecah 3 butir,lainnya
+nomor rekening toko yang mana ya?,lainnya
+ada promo lebaran gak bu?,lainnya
+bisa cicil pembayarannya gak?,lainnya
+lokasi tokonya di mana ya?,lainnya
+terima kasih banyak bu barang sudah sampai,lainnya
+asdfghjkl 12345,lainnya
+kapan barang saya diantar?,lainnya
+supir pengantar sudah jalan belum?,lainnya
+boleh minta salinan nota kemarin?,lainnya
+hari minggu toko buka atau tutup?,lainnya
+pembayaran bisa pakai qris atau tunai saja?,lainnya
+kemarin barang kurang satu dus,lainnya
+bisa retur barang yang rusak gak?,lainnya
+jam operasional gudang dari jam berapa?,lainnya
+alamat gudang di bontang sebelah mana?,lainnya
+ongkos kirim ke kampung baru kena biaya gak?,lainnya
+saya sudah transfer barusan tolong dicek,lainnya
+apakah nota bisa dikirim lewat pdf?,lainnya
+kalau telat bayar seminggu bagaimana?,lainnya
+terima kasih infonya pak,lainnya
+oke siap bu ditunggu pengantarannya,lainnya
+maaf tadi salah kirim chat,lainnya
+bisa titip barang dulu sampai sore?,lainnya
+kemasan karung kemarin agak sobek dikit,lainnya
+komplain pesanan kemarin belum lengkap,lainnya
+apakah melayani pengiriman hari libur?,lainnya
+bisa bayar di tempat saat barang tiba?,lainnya
+kenapa pengantaran minggu ini agak lama?,lainnya
+tolong kirim ulang foto struk belanja kemarin,lainnya
+cuaca hujan jadi pengantaran ditunda ya?,lainnya
+tes pesan acak tidak jelas 123,lainnya
+blabla tidak nyambung sama sekali,lainnya
+saya mau ketemu langsung pemilik toko,lainnya
+qwerty zxcvb tes 999,lainnya
