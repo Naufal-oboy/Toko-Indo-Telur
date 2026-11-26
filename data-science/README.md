@@ -4,8 +4,6 @@ Bagian data science untuk Capstone Asah 2026 (Tim A26-CS201): dataset intent
 untuk chatbot WhatsApp, data produk contoh, dan evaluasi baseline.
 
 > Seluruh data di folder ini **dummy/sintetis**. Tidak ada chat, nama, atau nomor
-> pelanggan asli (PRD BR-09 / NFR-05). Hasil evaluasi tidak mewakili kinerja pada
-> pesan pelanggan nyata.
 
 ## Isi folder
 
