@@ -361,6 +361,11 @@ export default function ReceiptPage({ initialView = 'new' }) {
     setNotice('')
   }
 
+  function showReceipt(number) {
+    setReceiptNumber(number)
+    window.scrollTo(0, 0)
+  }
+
   async function addCustomer(event) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
@@ -385,10 +390,12 @@ export default function ReceiptPage({ initialView = 'new' }) {
       const receipt = { number: 'Lokal-' + clientId.slice(0, 8), date: historyDate(), time: formatTime(new Date()), customer, total, status: saveAs, quantities, lines, pending: true, local: true }
       updateQueue([...queue, { payload, receipt }])
       let message
+      let savedNumber
       try {
         const saved = await dashboardRequest('/receipts', 'POST', payload)
         const snapshot = await dashboardRequest()
         applySnapshot(snapshot)
+        savedNumber = saved.number
         message = 'Nota ' + saved.number + ' tersimpan.'
       } catch (error) {
         if (!error.offline) {
@@ -398,7 +405,12 @@ export default function ReceiptPage({ initialView = 'new' }) {
         }
         message = 'Nota disimpan di antrean perangkat. Kirim lewat menu Sinkron saat koneksi kembali.'
       }
-      openView('new')
+      if (saveAs === 'ready' && savedNumber) {
+        openView('history')
+        showReceipt(savedNumber)
+      } else {
+        openView('new')
+      }
       setNotice(message)
     })
   }
@@ -573,7 +585,7 @@ export default function ReceiptPage({ initialView = 'new' }) {
           )}
 
           {view === 'history' && <>
-            <div hidden={Boolean(activeReceipt)}><ReceiptHistory receipts={receipts} openReceipt={(number) => { setReceiptNumber(number); window.scrollTo(0, 0) }} /></div>
+            <div hidden={Boolean(activeReceipt)}><ReceiptHistory receipts={receipts} openReceipt={showReceipt} /></div>
             {activeReceipt && <ReceiptDetail key={activeReceipt.number} receipt={activeReceipt} items={items}
               back={() => { setReceiptNumber(null); setOperationError(''); window.scrollTo(0, 0) }} updateStatus={updateReceiptStatus} busy={busy} />}
           </>}
