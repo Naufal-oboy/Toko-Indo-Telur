@@ -1,0 +1,251 @@
+text,intent
+halo,sapaan
+hai kak,sapaan
+selamat pagi,sapaan
+selamat siang,sapaan
+assalamualaikum kak,sapaan
+halo kak apa kabar,sapaan
+selamat sore,sapaan
+pagi kak,sapaan
+halo selamat malam,sapaan
+permisi kak,sapaan
+hai selamat pagi kak,sapaan
+assalamualaikum selamat pagi,sapaan
+hallo,sapaan
+haloo kak,sapaan
+hai,sapaan
+hai min,sapaan
+halo min,sapaan
+halo admin,sapaan
+pagi,sapaan
+siang kak,sapaan
+sore kak,sapaan
+malam kak,sapaan
+selamat malam kak,sapaan
+selamat siang kak,sapaan
+selamat sore min,sapaan
+met pagi,sapaan
+met siang kak,sapaan
+met malam,sapaan
+assalamualaikum,sapaan
+assalamu'alaikum,sapaan
+asalamualaikum kak,sapaan
+ass wr wb,sapaan
+assalamualaikum warahmatullahi wabarakatuh,sapaan
+assalamualaikum min,sapaan
+permisi,sapaan
+permisi min,sapaan
+misi kak,sapaan
+punten kak,sapaan
+halo bang,sapaan
+halo pak,sapaan
+halo bu,sapaan
+pagi bu,sapaan
+siang pak,sapaan
+hai bang selamat sore,sapaan
+halo toko indo telur,sapaan
+p,sapaan
+tes,sapaan
+hlo kak,sapaan
+hy kak,sapaan
+selamat pagi bu haji,sapaan
+mau pesan telur 5 rak,format_pesanan
+saya mau order gula 10 kg,format_pesanan
+mau pesan minyak goreng 2 dus,format_pesanan
+order beras 25 kg 2 karung,format_pesanan
+saya mau pesan tepung terigu 5 kg,format_pesanan
+mau order telur 10 rak buat besok,format_pesanan
+pesan gula pasir 20 kg ya kak,format_pesanan
+mau pesan minyak 1 dus sama telur 3 rak,format_pesanan
+saya mau order beras 50 kg,format_pesanan
+pesan tepung 10 kg,format_pesanan
+mau pesan gula merah 5 kg,format_pesanan
+order telur ayam 2 rak,format_pesanan
+pesan telur 3 rak,format_pesanan
+mau order telur 20 rak,format_pesanan
+kak pesan gula 5 kg,format_pesanan
+pesen minyak goreng 3 liter,format_pesanan
+mau beli beras 10 kg,format_pesanan
+saya pesan telur 15 rak diantar besok pagi,format_pesanan
+order gula pasir 50 kg sama tepung 25 kg,format_pesanan
+minta telur 8 rak ya kak,format_pesanan
+tolong siapkan beras 2 karung,format_pesanan
+kirim telur 30 rak ke toko saya,format_pesanan
+pesan minyak goreng 5 dus,format_pesanan
+halo kak mau pesan telur 4 rak,format_pesanan
+assalamualaikum mau order gula 15 kg,format_pesanan
+mau ambil telur 6 rak nanti sore,format_pesanan
+pesan tepung terigu 20 kg sama gula merah 3 kg,format_pesanan
+order minyak 2 dus telur 10 rak gula 10 kg,format_pesanan
+saya mau beli telur 1 rak aja,format_pesanan
+pesen beras 5 kg 3 bungkus,format_pesanan
+kak tolong catat pesanan telur 12 rak,format_pesanan
+bikinkan nota telur 25 rak,format_pesanan
+mau psn gula 3 kg,format_pesanan
+order tlr 10 rak,format_pesanan
+pesan gula 2 karung,format_pesanan
+mau pesan seperti biasa telur 10 rak,format_pesanan
+tambah pesanan gula 5 kg lagi kak,format_pesanan
+pesan telur 7 rak gula 7 kg minyak 7 liter,format_pesanan
+saya ambil minyak goreng 10 liter ya,format_pesanan
+mau order buat warung telur 40 rak,format_pesanan
+pesan telur ayam 50 butir,format_pesanan
+pagi kak pesan beras 25 kg 1 karung,format_pesanan
+order tepung 15 kg diantar hari ini bisa,format_pesanan
+beli gula merah 10 kg,format_pesanan
+mau pesan minyak goreng 1 liter 12 botol,format_pesanan
+pesan telur 2 rak sama tepung 2 kg,format_pesanan
+kak saya order beras 100 kg,format_pesanan
+titip pesan telur 9 rak buat lusa,format_pesanan
+orderan saya telur 18 rak gula 20 kg,format_pesanan
+mau pesan telur setengah rak,format_pesanan
+harga telur 1 rak berapa,cek_harga
+gula 1 kg harganya berapa kak,cek_harga
+harga minyak goreng 1 liter berapa,cek_harga
+beras 5 kg berapa harganya,cek_harga
+tepung terigu 1 kg berapa,cek_harga
+harga telur ayam per rak berapa kak,cek_harga
+gula pasir sekilo berapa ya,cek_harga
+minyak goreng 2 liter harganya berapa,cek_harga
+harga beras 25 kg berapa,cek_harga
+telur 1 butir berapa kak,cek_harga
+harga gula merah 1 kg berapa,cek_harga
+tepung 1 kg harganya berapa kak,cek_harga
+telur berapa kak,cek_harga
+harga telur sekarang berapa,cek_harga
+telur 1 rak brp,cek_harga
+hrg gula 1 kg brp kak,cek_harga
+berapaan minyak goreng 1 liter,cek_harga
+harga beras per kg berapa,cek_harga
+harga beras sekarung berapa,cek_harga
+gula pasir berapa sekilo,cek_harga
+minyak 1 dus harganya berapa,cek_harga
+tepung terigu sekilo berapa kak,cek_harga
+gula merah berapa harganya,cek_harga
+harga telur naik nggak kak,cek_harga
+harga telur hari ini berapa per rak,cek_harga
+kalau ambil 10 rak harganya berapa,cek_harga
+harga grosir telur berapa,cek_harga
+ada harga khusus kalau beli banyak?,cek_harga
+minyak goreng 2 liter berapa duit,cek_harga
+halo kak harga gula berapa ya,cek_harga
+assalamualaikum mau tanya harga beras,cek_harga
+tanya harga dong kak telur per butir,cek_harga
+pricelist dong kak,cek_harga
+boleh minta daftar harga,cek_harga
+harga tepung 25 kg berapa,cek_harga
+berapa harga minyak per dus sekarang,cek_harga
+telur masih 55 ribu kah,cek_harga
+gula masih harga lama?,cek_harga
+beras 10 kg kena berapa,cek_harga
+total kalau telur 5 rak berapa,cek_harga
+harga telur turun belum kak,cek_harga
+1 rak telur berapa rupiah,cek_harga
+harga sembako hari ini berapa aja kak,cek_harga
+mau tanya harga minyak goreng,cek_harga
+berapa harga gula pasir 50 kg,cek_harga
+harga per rak kalau ambil 20 rak berapa,cek_harga
+minta info harga telur dong,cek_harga
+kak telur sekilo berapa,cek_harga
+harga terigu berapa ya min,cek_harga
+gula merah sekilo brp,cek_harga
+stok telur ada kak,cek_stok
+stok gula masih ada nggak,cek_stok
+minyak goreng masih tersedia?,cek_stok
+beras masih ada stoknya?,cek_stok
+stok tepung terigu ada?,cek_stok
+telur rak masih ada berapa,cek_stok
+stok gula pasir masih banyak?,cek_stok
+minyak masih ada kak,cek_stok
+stok beras 25 kg ada nggak,cek_stok
+telur masih tersedia hari ini?,cek_stok
+stok minyak goreng 1 liter ada?,cek_stok
+gula masih ada stok kak,cek_stok
+telur ada?,cek_stok
+telur ready kak?,cek_stok
+gula ready?,cek_stok
+ready stok minyak goreng?,cek_stok
+ada beras kak?,cek_stok
+masih ada telur nggak,cek_stok
+telur habis ya kak?,cek_stok
+stok telur tinggal berapa rak,cek_stok
+gula pasir ada stok?,cek_stok
+minyak goreng 1 dus ada?,cek_stok
+tepung masih ada?,cek_stok
+gula merah ada nggak kak,cek_stok
+stok beras masih banyak kak?,cek_stok
+telur masih ada 20 rak nggak,cek_stok
+kalau mau ambil 50 rak telur ada stoknya?,cek_stok
+hari ini telur masuk nggak kak,cek_stok
+telur baru datang belum,cek_stok
+kapan stok gula masuk lagi,cek_stok
+minyak kosong ya?,cek_stok
+beras 25 kg ready berapa karung,cek_stok
+halo kak telur masih ada?,cek_stok
+assalamualaikum stok gula ada kak,cek_stok
+mau tanya stok tepung terigu,cek_stok
+cek stok minyak goreng dong,cek_stok
+ada stok telur ayam butiran?,cek_stok
+gula masih ready min,cek_stok
+tlr ready?,cek_stok
+stok tepung 25 kg ada berapa,cek_stok
+masih sisa beras nggak kak,cek_stok
+telur aman kak stoknya?,cek_stok
+ada barang nggak kak telur,cek_stok
+minyak goreng 2 liter masih tersedia?,cek_stok
+besok telur ada nggak ya,cek_stok
+stok gula merah tinggal berapa,cek_stok
+apa telur masih tersedia,cek_stok
+beras ada stok buat 10 karung?,cek_stok
+tepung terigu kosong atau ada,cek_stok
+masih jual minyak goreng kak?,cek_stok
+terima kasih kak,lainnya
+lokasi toko di mana ya,lainnya
+jam buka toko sampai jam berapa,lainnya
+bisa diantar ke bontang?,lainnya
+cuaca hari ini panas ya,lainnya
+ada lowongan kerja nggak kak,lainnya
+kirim foto kucing dong,lainnya
+selamat ulang tahun ya kak,lainnya
+saya suka tokonya,lainnya
+toko buka hari minggu nggak,lainnya
+nomor telepon pemilik berapa,lainnya
+bisa bayar pakai qris?,lainnya
+makasih kak,lainnya
+makasih ya,lainnya
+terima kasih banyak,lainnya
+ok kak,lainnya
+oke siap,lainnya
+iya kak,lainnya
+baik kak ditunggu,lainnya
+alamat tokonya di mana,lainnya
+share lokasi dong kak,lainnya
+toko buka jam berapa,lainnya
+halo kak toko buka?,lainnya
+hari ini buka nggak,lainnya
+tutup jam berapa kak,lainnya
+bisa cod nggak,lainnya
+ongkir ke loktuan berapa,lainnya
+pengantarannya jam berapa,lainnya
+pesanan saya sudah diantar belum,lainnya
+kok pesanan saya belum datang,lainnya
+bisa transfer ke rekening mana,lainnya
+bisa bayar tempo nggak,lainnya
+bisa utang dulu kak,lainnya
+mau komplain telurnya banyak yang pecah,lainnya
+barangnya kurang kak,lainnya
+saya mau batalin pesanan,lainnya
+nota saya salah kak,lainnya
+bisa retur nggak,lainnya
+ada promo nggak kak,lainnya
+nerima pegawai nggak,lainnya
+ini nomor siapa ya,lainnya
+maaf salah kirim,lainnya
+wkwk,lainnya
+sudah saya transfer ya kak,lainnya
+boleh minta nomor pengantarnya,lainnya
+bisa ngobrol sama pemiliknya,lainnya
+jual pulsa nggak kak,lainnya
+sampai ketemu besok,lainnya
+selamat hari raya ya kak,lainnya
+minimal pembelian berapa,lainnya
