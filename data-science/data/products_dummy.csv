@@ -1,0 +1,9 @@
+sku,name,description,price,stock,unit,is_active
+TELUR-RAK-01,Telur ayam 1 rak,Data dummy,55000,120,rak,true
+GULA-PASIR-KG-01,Gula pasir 1 kg,Data dummy,17500,200,kg,true
+MINYAK-L-01,Minyak goreng 1 liter,Data dummy,38000,150,liter,true
+BERAS-KG-01,Beras 1 kg,Data dummy,13500,500,kg,true
+TEPUNG-KG-01,Tepung terigu 1 kg,Data dummy,12000,100,kg,true
+GULA-MERAH-KG-01,Gula merah 1 kg,Data dummy,20000,40,kg,true
+TELUR-BUTIR-01,Telur ayam 1 butir,Data dummy,2000,1000,butir,true
+MINYAK-DUS-01,Minyak goreng 1 dus,Data dummy,450000,15,dus,true
