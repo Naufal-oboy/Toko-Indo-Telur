@@ -22,29 +22,37 @@ Tujuan layanan AI ini adalah menyediakan respons awal yang cepat, sopan, dan ter
 
 ---
 
-## 2. Sumber Dataset, Batasan Penggunaan & Cara Retrain (`DS-04`)
+## 2. Sumber Dataset, Status Model & Alur Handoff Data Science
 
-### Sumber & Hak Penggunaan Data (`BR-09` & `NFR-05`)
-- **`data/intent_dataset_dummy.csv`**: Dataset **dummy sintetis** berisi **202 baris mentah** (menjadi **200 baris unik** setelah normalisasi & deduplikasi, seimbang **40 sampel per kelas** untuk 5 kelas intent), mencakup variasi bahasa percakapan grosir sembako Indonesia dan salah ketik (*typo*) seperti `telor`, `gulaa`, `brp`, `migor`, dan `ready`.
-- **`data/sample_products.json`**: Katalog contoh **11 produk sembako** berformat identik dengan respons Express `GET /api/products` (`id`, `sku`, `name`, `description`, `price`, `stock`, `unit`, `is_active`), termasuk produk stok menipis (`<= 5`), stok habis (`0.000`), dan 1 produk nonaktif (`is_active: false`) untuk pengujian filter.
-- **Privasi & batasan:** Dataset **tidak memuat PII**, tidak menggunakan nomor telepon, nama pelanggan nyata, ataupun isi chat asli UMKM. Hasil evaluasi pada data dummy **tidak diklaim** mewakili performa produksi maupun metrik bisnis aktual UMKM.
+### Sumber Dataset Saat Ini & Perbandingan Eksperimen
+1. **Dataset AI Service Internal (`data/intent_dataset_dummy.csv`):**
+   - Berisi **202 baris mentah** yang menghasilkan **200 data unik** setelah pembersihan dan deduplikasi (seimbang 40 data per kelas intent).
+   - Menghasilkan model terbaik `tfidf_linear_svc` dengan **Accuracy 0.9250** dan **Macro-F1 0.9229** pada test set terpisah (40 sampel).
+2. **Dataset Tim Data Science (`data-science/data/dataset_intent_dummy.csv`):**
+   - Folder `data-science` memiliki dataset intent dummy tersendiri berisi **250 pesan dummy** (50 sampel per kelas intent).
+   - Evaluasi baseline Data Science (`data-science/evaluasi_intent.py`) menggunakan TF-IDF dan Naive Bayes menghasilkan **Accuracy 0.86** dan **Macro-F1 0.86**.
 
-### Skema CSV Dataset
-File dataset pelatihan wajib berformat CSV UTF-8 dengan dua kolom:
-```csv
-text,intent
-stok telor ada?,cek_stok
-harga gulaa brp?,cek_harga
-```
+> **PENTING — Larangan Membandingkan Langsung:**
+> Metrik **0.925** pada AI Service dan **0.86** pada Data Science **tidak boleh dibandingkan secara langsung** karena menggunakan dataset yang berbeda, jumlah data berbeda, dan protokol eksperimen yang berbeda.
+> Model pada AI Service saat ini **belum dilatih ulang (retrain)** menggunakan dataset Data Science 250 baris tersebut. Jangan menyatakan model AI service sudah diperbarui dengan data DS sebelum proses retraining benar-benar dijalankan.
 
-### Cara Melatih Ulang Saat Dataset Final DS (`DS-04`) Tersedia
-Begitu dataset final dari tim Data Science (`DS-04`) diterima, latih dan evaluasi ulang seluruh kandidat model tanpa mengubah kode melalui argumen `--dataset`:
-```bash
-python src/train_evaluate.py \
-  --dataset path/ke/dataset_final_ds04.csv \
-  --output-model artifacts/intent_model.joblib \
-  --output-report artifacts/evaluation_report.json
-```
+### Alur Handoff Dataset Tim Data Science ke AI Service
+Agar model AI service dapat diperbarui dengan data final tim Data Science (`DS-04`), alur kerja handoff dilakukan sebagai berikut:
+1. Tim Data Science menyelesaikan kurasi, validasi sintaks, dan pengujian baseline pada `data-science/data/dataset_intent_dummy.csv`.
+2. Tim Data Science menyerahkan path dataset CSV yang sudah divalidasi ke AI Service. Skema CSV wajib berupa UTF-8 dengan dua kolom header:
+   ```csv
+   text,intent
+   stok telor ada?,cek_stok
+   harga gulaa brp?,cek_harga
+   ```
+3. Tim AI Service menjalankan skrip retraining resmi:
+   ```bash
+   python src/train_evaluate.py \
+     --dataset ../data-science/data/dataset_intent_dummy.csv \
+     --output-model artifacts/intent_model.joblib \
+     --output-report artifacts/evaluation_report.json
+   ```
+4. Skrip secara otomatis menormalkan teks, mendeduplikasi data, membagi train/test (80/20 stratified), membandingkan 3 model pipeline, mengekspor model terbaik baru, dan memperbarui metadata `artifacts/evaluation_report.json`.
 
 ---
 
@@ -250,7 +258,11 @@ curl -X POST http://localhost:8000/ai/suggest-reply \
 ```
 
 ### 4) `POST /ai/chatbot/respond`
-Alur penuh simulator / siap-webhook WhatsApp (`predict-intent` $\rightarrow$ ambil produk dari payload / *read-only* `GET /api/products` backend / katalog sampel demo $\rightarrow$ `suggest-reply`).
+Endpoint orkestrator respons chatbot end-to-end. Endpoint ini menerima input pesan, memprediksi intent, mengambil data produk (dari payload / *read-only* backend `GET /api/products` / sampel fallback), dan menyusun jawaban.
+
+> **Catatan Integrasi WhatsApp:**
+> Endpoint ini saat ini berfungsi sebagai **antarmuka simulator / siap-webhook**. Keberadaan endpoint ini **belum membuktikan adanya integrasi WhatsApp secara langsung** (belum ada webhook WhatsApp Business API atau sandbox live yang terhubung ke server).
+
 ```bash
 curl -X POST http://localhost:8000/ai/chatbot/respond \
   -H "Content-Type: application/json" \
@@ -266,7 +278,20 @@ curl -X POST http://localhost:8000/ai/chatbot/respond \
 
 ---
 
-## 10. Cara Menjalankan Lokal
+## 10. Konfigurasi Autentikasi & Keamanan Sebelum Deployment Publik
+
+Layanan AI Service dilengkapi dengan proteksi opsional berbasis API Key:
+- Variabel lingkungan: `AI_SERVICE_API_KEY` pada file `.env`.
+- Jika `AI_SERVICE_API_KEY` dibiarkan kosong (kondisi default untuk pengembangan lokal), seluruh endpoint POST dapat diakses secara publik tanpa token.
+- **Wajib Sebelum Deployment Publik:** Sebelum mengekspos endpoint AI ke internet publik, setel `AI_SERVICE_API_KEY=<token-rahasia-panjang>` di environment hosting (Render/Railway/Docker). Setiap request ke endpoint POST (`/ai/predict-intent`, `/ai/suggest-reply`, `/ai/chatbot/respond`) wajib menyertakan header:
+  ```http
+  X-API-Key: <token-rahasia-panjang>
+  ```
+  Permintaan tanpa header yang valid akan otomatis ditolak dengan status HTTP `401 Unauthorized`.
+
+---
+
+## 11. Cara Menjalankan Lokal
 
 Pastikan Python **3.11+** (dikembangkan pada Python **3.13**) tersedia, lalu jalankan dari folder `ai-service/`:
 
@@ -298,7 +323,7 @@ pytest -v
 
 ---
 
-## 11. Cara Deploy Online (`Dockerfile` / Render / Railway)
+## 12. Cara Deploy Online (`Dockerfile` / Render / Railway)
 
 Folder `ai-service/` sudah menyertakan `Dockerfile` berbasis `python:3.13-slim` yang otomatis membaca variabel `PORT` dari platform cloud (`uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}`).
 

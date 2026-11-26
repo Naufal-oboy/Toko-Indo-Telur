@@ -1,32 +1,79 @@
 # Sistem Nota Digital & Chatbot Toko Indo Telur
 
-> Capstone Project Asah 2026 · Tim **A26-CS201** · **Status: perencanaan / pengembangan MVP**
+> Capstone Project Asah 2026 · Tim **A26-CS201** · **Status: MVP Pengembangan & Pengujian Lokal**
 
-Sistem Nota Digital & Chatbot Toko Indo Telur adalah rancangan aplikasi kasir berbasis web untuk membantu usaha grosir sembako di Kota Bontang membuat nota lebih cepat, mengelola produk dan stok, serta memberikan respons awal terhadap pesan pelanggan. Aplikasi direncanakan dapat digunakan di browser HP Android, termasuk untuk pencatatan transaksi saat koneksi internet tidak tersedia.
+Sistem Nota Digital & Chatbot Toko Indo Telur adalah aplikasi kasir berbasis web dan layanan AI untuk membantu usaha grosir sembako Toko Indo Telur di Kota Bontang membuat nota lebih cepat, mengelola produk dan pelanggan, mencatat pergerakan stok, serta memberikan respons awal terhadap pesan pelanggan via simulator chatbot.
 
-**Dokumentasi kebutuhan lengkap:** [Product Requirements Document (PRD)](./PRD.md). **Dokumentasi database:** [Database Schema](./docs/database-schema.md).
+**Dokumentasi:** [Product Requirements Document (PRD)](./PRD.md) · [Database Schema](./docs/database-schema.md) · [AI Service README](./ai-service/README.md) · [Data Science README](./data-science/README.md)
 
-> **Catatan status:** Fitur di bawah adalah **ruang lingkup yang direncanakan dalam Project Plan**, bukan klaim bahwa fitur sudah diimplementasikan, diuji, atau tersedia secara publik. MVP ini ditujukan untuk demonstrasi dan validasi UMKM, bukan langsung untuk operasional produksi.
+> **Catatan Status & Batasan Verifikasi:**
+> - Proyek ini adalah implementasi MVP untuk demonstrasi dan validasi, **belum dideploy ke URL publik** dan **belum untuk lingkungan produksi**.
+> - **Offline:** Saat ini baru memiliki **antrean transaksi berbasis `localStorage`** pada browser saat server terputus, **bukan sistem offline-first penuh** (katalog, pelanggan, dan stok tidak berjalan offline penuh).
+> - **Integrasi AI:** Menggunakan **Google Gemini API** (`gemini-3.5-flash-lite`) dengan *factuality guard* dan *fallback* aturan sederhana berbasis kata kunci.
+> - **WhatsApp:** **Belum ada bukti integrasi WhatsApp langsung** (tidak ada webhook/konektor WhatsApp live; pengujian dilakukan melalui REST endpoint simulator).
+> - **Cetak Nota:** Menggunakan fungsi browser `window.print()` dengan layout struk 58 mm (`@media print`). **Pengujian pada printer fisik Bluetooth Iware ZJ-5809 belum diverifikasi** secara langsung.
+> - **Berbagi Nota:** Menggunakan **Web Share API (`navigator.share`)** dengan *fallback* salin teks ke *clipboard* atau unduh file teks `.txt`, **bukan ekspor PDF atau gambar**.
 
-## Status implementasi saat ini
+## Status Implementasi Proyek
 
-Fondasi backend dan database telah tersedia untuk tahap berikutnya:
+| Status | Fitur & Komponen | Keterangan Verifikasi |
+| --- | --- | --- |
+| **Implemented** | API Produk (`/api/products`) | CRUD produk lengkap dengan validasi SKU, nama, harga non-negatif (`GET`, `POST`, `PUT`, `DELETE`). |
+| **Implemented** | API Dashboard (`/api/dashboard`) | Endpoint agregat snapshot data toko (`GET /`), CRUD pelanggan (`POST /customers`), CRUD produk dashboard dengan pengelolaan stok (`POST`, `PUT`, `DELETE /products`), pembuatan nota (`POST /receipts`), pembaruan status pemenuhan (`PATCH /receipts/:number/status`), serta backup & restore (`POST /backup`, `POST /restore`). |
+| **Implemented** | Database & Migration PostgreSQL | Migration `001_initial_schema.sql` (5 tabel inti: `products`, `transactions`, `transaction_items`, `stock_movements`, `sync_records`) dan `002_dashboard.sql` (`customers`, `dashboard_settings`, sequence invoice). Constraint stok, trigger audit movement, dan idempotency teruji. |
+| **Implemented** | Frontend Dashboard Kasir | Antarmuka React 19 + Vite: pembuatan nota 3-langkah (pelanggan, barang, simpan), riwayat nota terfilter, ekspor CSV, manajemen produk dan pelanggan, serta antarmuka backup/restore JSON. |
+| **Implemented** | Ekspor Riwayat CSV | Mengunduh file `.csv` riwayat nota langsung dari browser. |
+| **Implemented** | AI Intent Classification & Product Matcher | Layanan FastAPI port 8000: klasifikasi 5 kelas intent (`sapaan`, `format_pesanan`, `cek_stok`, `cek_harga`, `lainnya`) dengan model `tfidf_linear_svc` (akurasi 0.9250 pada dataset dummy internal AI), pencocokan produk toleran typo via RapidFuzz, dan saran balasan Gemini. |
+| **Partially Implemented** | Mode Offline & Sinkronisasi | Tersedia antrean nota lokal di browser (`indo-telur-receipt-queue-v1` di `localStorage`) saat request gagal; nota dapat disinkronkan manual saat online kembali. Belum mendukung penyimpanan master data offline penuh. |
+| **Partially Implemented** | Berbagi Nota Digital | Berbagi teks nota via Web Share API atau clipboard/TXT. Ekspor format PDF atau gambar belum tersedia. |
+| **Needs Testing** | Cetak Struk 58 mm | CSS print layout 58 mm tersedia; uji fisik printer Bluetooth Iware ZJ-5809 belum terverifikasi. |
+| **Planned** | Integrasi WhatsApp Langsung | Webhook resmi WhatsApp Business API / sandbox belum dihubungkan. Endpoint chatbot saat ini melayani request JSON simulator. |
+| **Planned** | Analisis Data Science Transaksi | Analisis pola transaksi riil UMKM, EDA mendalam, dan rekomendasi bisnis masih direncanakan menunggu data transaksi asli UMKM berizin. |
+| **Unverified** | Deployment Publik | Belum ada URL hosting publik terverifikasi untuk frontend, backend, maupun AI service. |
 
-- Backend menggunakan Node.js, Express, dan driver `pg`; endpoint `GET /api/health` serta `GET /api/db-check` telah diuji.
-- PostgreSQL memiliki migration idempoten untuk `products`, `transactions`, `transaction_items`, `stock_movements`, dan `sync_records`.
-- Harga dan total memakai `NUMERIC`; skema nota menyediakan snapshot produk/harga; perubahan stok dicatat secara immutable dan tidak dapat menghasilkan stok negatif.
-- Migration dan constraint database telah diverifikasi terhadap database `toko_indo_telur`; data uji selalu di-rollback.
+## Teknologi yang Digunakan
 
-Dashboard **Toko Indo Telur** memakai PostgreSQL untuk produk, pelanggan, nota, status pengantaran, dan stok. Riwayat mendukung filter, ekspor CSV, detail nota, serta cetak dan bagikan melalui browser. Penjualan menyimpan harga dan nama barang saat nota dibuat. Stok berkurang saat nota siap diantar atau langsung ditandai diantar, dan perubahannya masuk ke catatan stok. Detail skema ada di [Database Schema](./docs/database-schema.md).
+| Komponen | Teknologi | Deskripsi |
+| --- | --- | --- |
+| Frontend | React 19, Vite | UI kasir responsif, routing internal (`/produk`, `/nota-baru`, `/katalog-api`), CSS modular. |
+| Backend | Node.js, Express 5, `pg` | REST API produk, dashboard, PostgreSQL connection pool, script migrasi & pengujian. |
+| Database | PostgreSQL | Relasi 7 tabel, trigger audit stok atomik, sequence invoice `dashboard_invoice_seq`. |
+| AI Service | Python 3.11+, FastAPI, scikit-learn | REST API port 8000, model intent classifier, RapidFuzz matcher, Pydantic v2 schemas. |
+| Generative AI | Google Gemini API (`google-genai`) | Model default `gemini-3.5-flash-lite` dengan *factuality guard* & *rate limiting*. |
+| Data Science | Python 3 | Dataset intent dummy 250 baris, evaluasi baseline TF-IDF + Naive Bayes tanpa library luar. |
 
-### Menjalankan dashboard lokal
+## Struktur Folder Repository
 
-Setelah PostgreSQL berjalan dan `backend/.env` terisi, jalankan dari folder `backend`:
-
-```powershell
-npm.cmd ci
-npm.cmd run migrate
-npm.cmd run dev
+```text
+.
+├── ai-service/             # Layanan AI FastAPI (klasifikasi intent & chatbot)
+│   ├── artifacts/          # Model terlatih (intent_model.joblib) & laporan evaluasi
+│   ├── data/               # Dataset intent dummy (202 raw) & katalog produk sampel
+│   ├── src/                # Kode sumber API (main.py, orchestrator, matcher, schemas)
+│   ├── tests/              # Test suite pytest komprehensif
+│   ├── Dockerfile          # Kontainerisasi layanan AI
+│   └── requirements.txt    # Dependensi Python AI service
+├── backend/                # API Express & Database PostgreSQL
+│   ├── scripts/            # Script run-migrations, verify-database, test scripts
+│   ├── src/
+│   │   ├── config/         # Konfigurasi pool PostgreSQL
+│   │   ├── controllers/    # Controller produk
+│   │   ├── database/       # File migrasi SQL (001_initial_schema, 002_dashboard)
+│   │   ├── routes/         # Router Express (products, dashboard)
+│   │   └── server.js       # Entry point Express backend (port 3000)
+│   └── package.json        # Dependensi dan script backend
+├── data-science/           # Eksperimen data dummy & baseline evaluasi
+│   ├── data/               # dataset_intent_dummy.csv (250 baris) & products_dummy.csv
+│   ├── evaluasi_intent.py  # Script validasi dataset & baseline TF-IDF + Naive Bayes
+│   └── README.md           # Dokumentasi data science
+├── docs/                   # Dokumentasi teknis pendukung
+│   └── database-schema.md  # Dokumentasi skema database, ERD, dan aturan audit stok
+├── frontend/               # Aplikasi web React + Vite
+│   ├── src/                # Komponen kasir (ReceiptPage.jsx, App.jsx, dashboardApi.js)
+│   ├── package.json        # Dependensi React 19 & Oxlint
+│   └── vite.config.js      # Konfigurasi proxy Vite ke backend (/api -> port 3000)
+├── PRD.md                  # Product Requirements Document & status requirement
+└── README.md               # Dokumentasi utama proyek
 ```
 
 Di terminal lain, dari folder `frontend`:
@@ -131,81 +178,167 @@ Dokumen saat ini:
 - [`README.md`](./README.md) — pengantar proyek, fitur, dan rencana implementasi.
 - [`PRD.md`](./PRD.md) — requirement, alur, aturan bisnis, acceptance criteria, arsitektur, dan pengujian.
 
-Struktur repository yang **diusulkan** (akan disesuaikan dengan implementasi):
+## Panduan Menjalankan Layanan Lokal
 
-```text
-.
-├── frontend/          # React: antarmuka kasir
-├── backend/           # API aplikasi & sinkronisasi (stack belum ditentukan)
-├── ai-service/        # FastAPI atau Flask untuk model AI
-├── data-science/      # Data dummy, preprocessing, notebook, dan evaluasi
-├── docs/              # Panduan pengguna, diagram, hasil demo
-├── tests/             # Pengujian unit, integrasi, dan end-to-end
-├── README.md
-└── PRD.md
+### 1. Backend & Database Migration (Node.js & PostgreSQL)
+
+Pastikan service PostgreSQL berjalan lokal. Buat file `backend/.env` berdasarkan konfigurasi database Anda (misalnya database `toko_indo_telur`):
+
+```env
+PGHOST=localhost
+PGPORT=5432
+PGDATABASE=toko_indo_telur
+PGUSER=postgres
+PGPASSWORD=rahasia_anda
+PORT=3000
+FRONTEND_URL=http://localhost:5173
 ```
 
-### Menjalankan backend dan migration
+Jalankan perintah berikut dari folder `backend/`:
 
-Dari folder `backend/`, setelah `.env` PostgreSQL dikonfigurasi secara lokal:
-
-```bash
-npm run migrate
-npm run db:verify
-npm run dev
+```powershell
+cd backend
+npm.cmd install
+npm.cmd run migrate       # Menjalankan migrasi 001 dan 002 secara idempoten
+npm.cmd run db:verify     # Memverifikasi integritas tabel & constraint (rollback aman)
+npm.cmd run dev           # Menjalankan backend di http://localhost:3000
 ```
 
-`npm run migrate` aman dijalankan ulang: runner menggunakan lock PostgreSQL dan catatan checksum pada `schema_migrations`. `npm run db:verify` memeriksa skema dan constraint dengan data uji yang di-rollback. Tidak ada URL demo yang dinyatakan siap pada tahap ini. **Jangan mengunggah kunci API, token WhatsApp, kredensial database, atau data pelanggan ke repository.**
+### 2. Frontend Dashboard (React + Vite)
 
-Untuk menjalankan pengujian integrasi Product API:
+Jalankan perintah berikut di terminal terpisah dari folder `frontend/`:
 
-```bash
-npm run test:products
+```powershell
+cd frontend
+npm.cmd install
+npm.cmd run dev
 ```
 
-Script tersebut menjalankan server sementara, menguji seluruh endpoint produk terhadap PostgreSQL, dan membersihkan data uji setelah selesai.
+Buka URL aplikasi di browser:
+- **Nota Baru:** [http://localhost:5173/nota-baru](http://localhost:5173/nota-baru) (Alur kasir 3 langkah: pilih pelanggan, isi barang, simpan draft/siap).
+- **Produk & Stok:** [http://localhost:5173/produk](http://localhost:5173/produk) (Katalog, status stok, form tambah/edit).
+- **Katalog API Alternatif:** [http://localhost:5173/katalog-api](http://localhost:5173/katalog-api) (Halaman antarmuka Product API langsung).
 
-### Data dan dokumentasi model AI
+> **Alur Antrean Offline:** Jika backend tidak dapat dijangkau saat menyimpan nota, transaksi otomatis disimpan ke antrean browser (`localStorage`). Buka menu **Sinkron** dan klik **Sinkronkan sekarang** saat backend kembali aktif.
 
-Sumber awal yang diperbolehkan adalah daftar produk, contoh nota yang telah diizinkan pemilik, dan **data dummy tanpa identitas pelanggan**. Konten chat asli dan nomor pelanggan tidak digunakan.
+### 3. AI Service (FastAPI)
 
-Hasil pengembangan AI nantinya perlu mencatat:
+Jalankan di terminal terpisah dari folder `ai-service/`:
 
-- tujuan klasifikasi maksud pesan dan kategori yang digunakan;
-- asal, izin, skema, pembagian data latih/uji, dan langkah preprocessing;
-- model yang dilatih, library dan dependensi, konfigurasi, serta model yang dipilih;
-- perbandingan minimal **dua model/konfigurasi** menggunakan dataset evaluasi dan metrik yang sama;
-- API proprietary yang digunakan untuk saran balasan, batasannya, dan fallback ketika layanan tidak tersedia.
+```powershell
+cd ai-service
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
-Nilai metrik dan tautan model **belum tersedia** sehingga tidak dicantumkan sebagai hasil.
+Dokumentasi Swagger OpenAPI interaktif tersedia di [http://localhost:8000/docs](http://localhost:8000/docs).
+Untuk mengaktifkan balasan Gemini, isi variabel `GEMINI_API_KEY` di `ai-service/.env`. Jika kosong, layanan secara otomatis menggunakan *fallback* aturan sederhana yang deterministik dan aman.
 
-## Rencana empat minggu
+---
 
-| Pekan | Fokus | Target |
+## Verifikasi & Pengujian yang Tersedia
+
+Pengujian yang sudah dapat dijalankan dan diverifikasi di repository ini:
+
+1. **Database Schema & Constraints (`backend/`):**
+   ```powershell
+   cd backend
+   npm.cmd run db:verify
+   ```
+   *Memverifikasi 5 tabel aplikasi awal, 5 foreign key, validasi harga non-negatif, stok non-negatif, pencegahan stok minus pada penjualan, serta trigger audit movement (data uji selalu di-rollback).*
+
+2. **Integration Test Product API (`backend/`):**
+   ```powershell
+   cd backend
+   npm.cmd run test:products
+   ```
+   *Menguji endpoint CRUD produk, validasi SKU duplikat, larangan perubahan stok langsung via Product API, dan konflik relasi pada database.*
+
+3. **Integration Test Dashboard API (`backend/`):**
+   ```powershell
+   cd backend
+   npm.cmd run test:dashboard
+   ```
+   *Menguji skema terisolasi untuk pembuatan pelanggan, produk dashboard, stok atomik, idempotensi nota draft/ready, status delivered, sinkronisasi, dan backup/restore.*
+
+4. **Linting & Build Frontend (`frontend/`):**
+   ```powershell
+   cd frontend
+   npm.cmd run lint      # Oxlint
+   npm.cmd run build     # Vite production build
+   ```
+
+5. **AI Service Test Suite (`ai-service/`):**
+   ```powershell
+   cd ai-service
+   pytest -v
+   ```
+   *Menguji seluruh endpoint (`/ai/health`, `/ai/predict-intent`, `/ai/suggest-reply`, `/ai/chatbot/respond`), normalisasi teks, factuality guard Gemini, simulasi fallback, dan product matcher.*
+
+6. **Evaluasi Baseline Intent Data Science (`data-science/`):**
+   ```powershell
+   python data-science/evaluasi_intent.py
+   ```
+   *Memvalidasi 250 data dummy (0 baris kosong, 0 duplikat, 0 label tak dikenal) dan mengevaluasi baseline TF-IDF + Naive Bayes dengan akurasi dan Macro-F1 sekitar 0.86.*
+
+---
+
+## Daftar Endpoint API Aktual
+
+### Backend Express (Port 3000)
+
+| Method | Endpoint | Fungsi |
 | --- | --- | --- |
-| 1 | Klarifikasi kebutuhan; wireframe; kasir dasar; uji printer; rumusan masalah DS; desain data/model AI | Alur nota awal, data dictionary, dan bukti uji printer awal |
-| 2 | Stok, offline, backup/restore, server; data wrangling & analisis; dua kandidat model, API generatif | Komponen inti dapat diuji secara terpisah |
-| 3 | Sinkronisasi, chatbot nomor uji, cetak/bagikan nota, integrasi API AI; validasi DS | Alur utama terhubung untuk demo |
-| 4 | Uji end-to-end, perbaikan, dokumentasi, deployment, demo dan feedback UMKM | MVP dan bukti pengujian tervalidasi |
+| `GET` | `/api/health` | Cek status server Express backend |
+| `GET` | `/api/db-check` | Cek koneksi live ke PostgreSQL dan waktu server |
+| `GET` | `/api/products` | Mengambil seluruh daftar produk terurut nama |
+| `GET` | `/api/products/:id` | Detail produk berdasarkan ID |
+| `POST` | `/api/products` | Tambah produk baru (stok awal selalu 0) |
+| `PUT` | `/api/products/:id` | Ubah data produk (stok tidak dapat diubah di sini) |
+| `DELETE` | `/api/products/:id` | Hapus produk (ditolak jika memiliki relasi transaksi/stok) |
+| `GET` | `/api/dashboard/` | Mengambil snapshot lengkap produk, pelanggan, riwayat nota, & pengaturan |
+| `POST` | `/api/dashboard/customers` | Tambah data pelanggan baru |
+| `POST` | `/api/dashboard/products` | Tambah produk dashboard beserta stok awal |
+| `PUT` | `/api/dashboard/products/:id` | Ubah produk dashboard & sesuaikan stok via stock_movements |
+| `DELETE` | `/api/dashboard/products/:id` | Nonaktifkan produk dashboard (soft delete `is_active=false`) |
+| `POST` | `/api/dashboard/receipts` | Buat nota baru (status `draft` / `ready`; potong stok jika `ready`) |
+| `PATCH` | `/api/dashboard/receipts/:number/status` | Ubah status nota (`ready`, `delivered`) |
+| `POST` | `/api/dashboard/backup` | Unduh cadangan JSON produk, pelanggan, nota, dan stok terkini |
+| `POST` | `/api/dashboard/restore` | Pulihkan cadangan JSON ke database kosong |
 
-**Tanggal resmi** setiap pekan masih menunggu konfirmasi jadwal capstone; tabel ini tidak menetapkan tanggal kalender.
+### AI Service FastAPI (Port 8000)
 
-## Pengujian yang direncanakan
+| Method | Endpoint | Fungsi |
+| --- | --- | --- |
+| `GET` | `/ai/health` | Cek kesehatan layanan AI, status model aktif, dan konfigurasi API key |
+| `POST` | `/ai/predict-intent` | Klasifikasi 5 intent pesan dengan output skor probabilitas |
+| `POST` | `/ai/suggest-reply` | Saran balasan generatif berbasis Gemini atau fallback aturan deterministik |
+| `POST` | `/ai/chatbot/respond` | Simulator respons pesan end-to-end (intent + catalog lookup + reply) |
 
-**Pengujian yang sudah dilakukan untuk database:** migration dapat dijalankan ulang tanpa duplikasi; lima tabel aplikasi dan lima foreign key tersedia; harga/stok/kuantitas invalid ditolak; perubahan stok melewati audit trail dan stok negatif dicegah. Seluruh data uji di-rollback. Skenario lain di bagian ini masih merupakan rencana pengujian.
+---
 
-**Pengujian Product API yang sudah dilakukan:** daftar/detail produk, ID tidak valid atau tidak ditemukan, penambahan produk, harga negatif, SKU duplikat, pembaruan produk, larangan perubahan stok langsung, penghapusan aman, dan konflik relasi telah diuji terhadap PostgreSQL.
+## Status Dataset & Model AI
 
-- Nota: total otomatis, riwayat, input kosong/nol/huruf ditolak.
-- Produk dan stok: validasi harga, perubahan harga tidak mengubah nota lama, penjualan tidak melebihi stok.
-- Offline dan sinkronisasi: transaksi offline tetap tersimpan; retry tidak membuat nota ganda.
-- Printer: nota 1 dan 10 item terbaca di kertas 58 mm; kegagalan koneksi ditangani.
-- Backup/restore: data sama setelah dipindahkan ke HP lain; file rusak tidak merusak data lama.
-- Chatbot: sapaan, format pesan, cek stok/harga, salah ketik umum, produk tidak dikenal, dan penanganan API gagal.
-- AI: evaluasi dua model/konfigurasi pada data/metrik sama; endpoint online dapat menerima masukan valid dan menolak masukan invalid.
-- Demo: pemilik mengikuti panduan dan memberikan feedback.
+1. **Dataset AI Service (`ai-service/data/intent_dataset_dummy.csv`):**
+   - Berisi **202 baris mentah** yang menghasilkan **200 baris unik** setelah normalisasi dan deduplikasi (40 baris seimbang per kelas intent).
+   - Menghasilkan model terbaik **`tfidf_linear_svc`** dengan **Accuracy 0.9250** dan **Macro-F1 0.9229** pada test set terpisah (40 sampel).
+2. **Dataset Data Science (`data-science/data/dataset_intent_dummy.csv`):**
+   - Berisi **250 pesan dummy** (50 baris per kelas intent) yang divalidasi oleh `evaluasi_intent.py` menghasilkan baseline Accuracy dan Macro-F1 sebesar **0.86**.
+   - **Catatan Handoff:** Nilai 0.925 dan 0.86 **tidak boleh dibandingkan langsung** karena ukuran dataset, pemisahan data, dan metodologi eksperimen berbeda. Model aktif pada AI Service saat ini **belum dilatih ulang (retrain)** dengan dataset Data Science 250 baris tersebut.
 
-Catatan isu, perbaikan, dan pengujian ulang direncanakan melalui GitHub Issues/project board dan tabel hasil uji.
+---
+
+## Roadmap Pengembangan Berikutnya
+
+1. **Pengujian Fisik Printer Thermal:** Verifikasi koneksi Bluetooth dan hasil cetakan nota 58 mm pada printer fisik Iware ZJ-5809.
+2. **Integrasi Webhook WhatsApp:** Membangun gateway / webhook resmi WhatsApp Business API atau sandbox untuk menghubungkan chat masuk ke endpoint `/ai/chatbot/respond`.
+3. **Penyempurnaan Offline Mode:** Mengembangkan sinkronisasi dua arah offline-first penuh menggunakan IndexedDB dan Service Worker agar katalog produk dan pelanggan tetap dapat dibuka saat offline.
+4. **Analisis Data Transaksi UMKM:** Melakukan analisis eksploratori (EDA) dan pemodelan data transaksi riil dari Toko Indo Telur setelah persetujuan data diperoleh.
+5. **Retraining Model AI:** Melakukan proses handoff formal dataset dari tim Data Science ke tim AI Service untuk retraining model klasifikasi intent.
+6. **Keamanan & Deployment Publik:** Mengonfigurasi variabel autentikasi API (`AI_SERVICE_API_KEY`), CORS ketat, serta melakukan deployment publik frontend, backend, dan AI service dengan HTTPS.
 
 ## Tim
 

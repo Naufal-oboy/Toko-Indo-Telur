@@ -1,13 +1,24 @@
-# Database schema — Toko Indo Telur
+# Database Schema — Toko Indo Telur
 
-## ERD
+Dokumentasi skema database PostgreSQL untuk sistem kasir dan inventori Toko Indo Telur, mencakup migration `001_initial_schema.sql` dan `002_dashboard.sql`.
+
+## ERD (Entity Relationship Diagram)
 
 ```mermaid
 erDiagram
+  customers {
+    BIGSERIAL id PK
+    TEXT name
+    TEXT owner
+    TEXT phone
+    TEXT address
+  }
   products {
     BIGSERIAL id PK
     VARCHAR sku UK
     TEXT name
+    TEXT description
+    TEXT category
     NUMERIC price
     NUMERIC stock
     VARCHAR unit
@@ -19,10 +30,14 @@ erDiagram
     BIGSERIAL id PK
     UUID client_transaction_id UK
     VARCHAR invoice_number UK
+    BIGINT customer_id FK
+    JSONB customer_snapshot
+    TEXT fulfillment_status
     TIMESTAMPTZ transaction_date
     NUMERIC total_amount
     VARCHAR payment_method
     VARCHAR payment_status
+    TEXT notes
     TIMESTAMPTZ created_at
   }
   transaction_items {
@@ -43,6 +58,7 @@ erDiagram
     NUMERIC quantity_change
     NUMERIC stock_before
     NUMERIC stock_after
+    TEXT notes
     TIMESTAMPTZ created_at
   }
   sync_records {
@@ -51,75 +67,146 @@ erDiagram
     VARCHAR device_id
     BIGINT server_transaction_id FK
     VARCHAR status
+    TEXT error_message
     TIMESTAMPTZ received_at
     TIMESTAMPTZ processed_at
   }
+  dashboard_settings {
+    TEXT name PK
+    TIMESTAMPTZ value
+  }
 
+  customers ||--o{ transactions : "makes"
   products ||--o{ transaction_items : "sold as"
-  transactions ||--|{ transaction_items : contains
-  products ||--o{ stock_movements : has
-  transactions o|--o{ stock_movements : causes
+  transactions ||--|{ transaction_items : "contains"
+  products ||--o{ stock_movements : "tracks"
+  transactions o|--o{ stock_movements : "triggers"
   transactions o|--o| sync_records : "server transaction"
 ```
 
-## Tables and columns
+## Daftar Tabel dan Kolom
 
-### `products`
+### 1. `customers` (Ditambahkan pada `002_dashboard.sql`)
+Menyimpan data master pelanggan grosir dan warung rekanan Toko Indo Telur.
+- `id BIGSERIAL PRIMARY KEY`: ID unik pelanggan.
+- `name TEXT NOT NULL`: Nama toko / pelanggan (CHECK: tidak boleh kosong/spasi saja).
+- `owner TEXT NOT NULL DEFAULT ''`: Nama pemilik toko.
+- `phone TEXT NOT NULL DEFAULT ''`: Nomor kontak telepon / WhatsApp.
+- `address TEXT NOT NULL DEFAULT ''`: Alamat atau area pengantaran toko.
 
-Master product and current server-side inventory for the cashier and chatbot. `price NUMERIC(14,2)` is the current price only; old receipts use snapshots in `transaction_items`. `stock NUMERIC(14,3)` permits both unit and weight-based merchandise, but it is only changed by `stock_movements`. `sku` is optional and unique when present. `is_active` is the soft-delete flag; products with history are deactivated, not deleted.
+### 2. `products`
+Katalog produk master dan stok toko terkini untuk kasir dan AI Service.
+- `id BIGSERIAL PRIMARY KEY`: ID produk.
+- `sku VARCHAR(64) UNIQUE`: Kode SKU produk (opsional, unik jika diisi).
+- `name TEXT NOT NULL`: Nama produk sembako (CHECK: tidak boleh kosong/spasi saja).
+- `description TEXT`: Keterangan detail produk.
+- `category TEXT NOT NULL DEFAULT 'Lainnya'`: Kategori sembako (mis. Telur, Beras, Minyak, Gula, Tepung, Mi instan, Kopi, Lainnya; ditambahkan pada `002_dashboard.sql`).
+- `price NUMERIC(14, 2) NOT NULL`: Harga jual saat ini (CHECK: $\ge 0$). Nota historis tidak menggunakan harga ini, melainkan harga snapshot di `transaction_items`.
+- `stock NUMERIC(14, 3) NOT NULL DEFAULT 0`: Jumlah stok fisik saat ini (CHECK: $\ge 0$). **Hanya boleh diubah melalui trigger `stock_movements`**.
+- `unit VARCHAR(32) NOT NULL DEFAULT 'pcs'`: Satuan produk (rak, kg, liter, karung, dus, dll).
+- `is_active BOOLEAN NOT NULL DEFAULT TRUE`: Penanda soft-delete; produk yang pernah ditransaksikan tidak boleh dihapus keras (hard delete).
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`: Waktu pembuatan produk.
+- `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`: Waktu pembaruan produk (otomatis via trigger).
 
-### `transactions`
+### 3. `transactions`
+Mencatat setiap transaksi nota penjualan digital.
+- `id BIGSERIAL PRIMARY KEY`: ID internal database transaksi.
+- `client_transaction_id UUID NOT NULL UNIQUE`: UUID unik yang dibuat oleh perangkat browser untuk mencegah duplikasi nota saat retry sinkronisasi.
+- `invoice_number VARCHAR(80) NOT NULL UNIQUE`: Nomor nota resmi (format dashboard: `NT-` + 12 digit sequence dari `dashboard_invoice_seq`).
+- `customer_id BIGINT REFERENCES customers(id)`: Relasi opsional ke tabel pelanggan (ditambahkan pada `002_dashboard.sql`).
+- `customer_snapshot JSONB`: Snapshot data pelanggan (nama, pemilik, kontak, alamat) saat nota diterbitkan agar historis tidak berubah jika master pelanggan disunting.
+- `fulfillment_status TEXT NOT NULL DEFAULT 'delivered'`: Status pemenuhan pesanan dengan batasan CHECK: `('draft', 'ready', 'delivered')`. Stok terpotong saat berstatus `ready` atau langsung `delivered`.
+- `transaction_date TIMESTAMPTZ NOT NULL DEFAULT NOW()`: Tanggal dan waktu transaksi.
+- `total_amount NUMERIC(14, 2) NOT NULL DEFAULT 0`: Total nominal transaksi (otomatis dihitung ulang via trigger dari subtotal `transaction_items`).
+- `payment_method VARCHAR(16) NOT NULL DEFAULT 'cash'`: Metode pembayaran (CHECK: `'cash'`, `'transfer'`).
+- `payment_status VARCHAR(16) NOT NULL DEFAULT 'paid'`: Status pembayaran (CHECK: `'unpaid'`, `'paid'`, `'partial'`).
+- `notes TEXT`: Catatan tambahan transaksi.
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`: Timestamp rekaman masuk ke database.
 
-One digital receipt. `client_transaction_id UUID` is the stable ID produced by the device and has a unique constraint. `invoice_number` is separately unique for a human-readable receipt number. `total_amount NUMERIC(14,2)` is recalculated from the item subtotals by a trigger. Values for `payment_method` are `cash` and `transfer`; `payment_status` is `unpaid`, `paid`, or `partial`. `transaction_date` and `created_at` use `TIMESTAMPTZ`.
+### 4. `transaction_items`
+Rincian item barang pada setiap nota transaksi.
+- `id BIGSERIAL PRIMARY KEY`: ID unik baris item.
+- `transaction_id BIGINT NOT NULL REFERENCES transactions(id) ON DELETE RESTRICT`: Foreign key ke nota.
+- `product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE RESTRICT`: Foreign key ke produk master.
+- `product_name_snapshot TEXT NOT NULL`: Nama barang saat nota dicetak.
+- `unit_snapshot VARCHAR(32) NOT NULL`: Satuan barang saat nota dicetak.
+- `quantity NUMERIC(14, 3) NOT NULL`: Jumlah barang yang dibeli (CHECK: $> 0$).
+- `unit_price NUMERIC(14, 2) NOT NULL`: Harga satuan saat nota dicetak (CHECK: $\ge 0$).
+- `subtotal NUMERIC(14, 2) GENERATED ALWAYS AS (ROUND(quantity * unit_price, 2)) STORED`: Nilai subtotal yang dihitung dan disimpan otomatis oleh PostgreSQL.
 
-### `transaction_items`
+### 5. `stock_movements`
+Catatan audit trail pergerakan stok barang yang bersifat *immutable* (tidak dapat diubah atau dihapus).
+- `id BIGSERIAL PRIMARY KEY`: ID pergerakan stok.
+- `product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE RESTRICT`: ID produk terkait.
+- `transaction_id BIGINT REFERENCES transactions(id) ON DELETE RESTRICT`: ID transaksi terkait (wajib jika movement adalah `sale`).
+- `movement_type VARCHAR(16) NOT NULL`: Jenis pergerakan (CHECK: `'sale'`, `'restock'`, `'adjustment'`, `'return'`).
+- `quantity_change NUMERIC(14, 3) NOT NULL`: Nilai perubahan stok (negatif untuk `sale`, positif untuk `restock`/`return`, CHECK: $\ne 0$).
+- `stock_before NUMERIC(14, 3) NOT NULL`: Nilai stok sebelum perubahan (CHECK: $\ge 0$).
+- `stock_after NUMERIC(14, 3) NOT NULL`: Nilai stok setelah perubahan (CHECK: $\ge 0$, konsisten `stock_before + quantity_change`).
+- `notes TEXT`: Alasan atau keterangan pergerakan stok.
+- `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`: Timestamp pencatatan audit.
 
-Receipt lines. `product_name_snapshot`, `unit_snapshot`, and `unit_price` preserve the displayed receipt even after a product is renamed, repriced, or deactivated. `quantity` must be greater than zero. `subtotal` is a stored generated value of `quantity × unit_price`, rounded to two decimal places.
+### 6. `sync_records`
+Pelacak daur hidup pengiriman transaksi offline dari browser ke server untuk menjamin idempotensi.
+- `id BIGSERIAL PRIMARY KEY`: ID record sinkronisasi.
+- `client_transaction_id UUID NOT NULL UNIQUE`: UUID transaksi dari perangkat kasir.
+- `device_id VARCHAR(128) NOT NULL`: Pengenal perangkat pengirim (misal: `'web'`, `'backup'`).
+- `server_transaction_id BIGINT UNIQUE REFERENCES transactions(id) ON DELETE RESTRICT`: ID transaksi yang berhasil dibuat di server.
+- `status VARCHAR(16) NOT NULL DEFAULT 'received'`: Status pemrosesan (CHECK: `'received'`, `'processed'`, `'failed'`).
+- `error_message TEXT`: Keterangan kegagalan jika status bernilai `'failed'`.
+- `received_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`: Waktu request diterima server.
+- `processed_at TIMESTAMPTZ`: Waktu selesai diproses atau gagal.
 
-### `stock_movements`
+### 7. `dashboard_settings` (Ditambahkan pada `002_dashboard.sql`)
+Menyimpan pasangan metadata key-value bertipe timestamp untuk operasional dashboard.
+- `name TEXT PRIMARY KEY`: Nama konfigurasi (misalnya `'lastBackup'`, `'lastSync'`).
+- `value TIMESTAMPTZ NOT NULL`: Nilai timestamp terakhir operasi dilakukan.
 
-Immutable inventory audit trail. Each record belongs to a product; a sale also refers to its receipt. Allowed values are `sale`, `restock`, `adjustment`, and `return`. Sales must be negative and tied to a transaction; restocks and returns must be positive. A trigger locks the product row, calculates `stock_before` and `stock_after`, rejects a negative result, and updates `products.stock` in the same database transaction.
+---
 
-### `sync_records`
+## Aturan Mutasi Stok & Penegakan Integritas Data
 
-Tracks the lifecycle of an offline submission. A record is identified by the device-provided `client_transaction_id`, which is unique. `server_transaction_id` is set only after the server transaction exists and is verified to point to the transaction with the same client ID. Status lifecycle is:
+1. **Pembuatan Produk Baru:**
+   - Produk baru wajib diawali dengan nilai `stock = 0`. Penegakan dilakukan oleh trigger `trg_products_require_zero_initial_stock`.
+2. **Restock Awal & Penyesuaian Stok:**
+   - Menambah stok awal atau penyesuaian wajib memasukkan baris baru ke tabel `stock_movements` (dengan tipe `'restock'` atau `'adjustment'`).
+   - Trigger `trg_stock_movements_apply_stock` secara otomatis mengunci baris produk (`FOR UPDATE`), memvalidasi bahwa stok tidak menjadi negatif, menghitung `stock_before` dan `stock_after`, serta memperbarui kolom `products.stock` dalam satu transaksi atomik.
+3. **Pencegahan Mutasi Langsung:**
+   - Kolom `products.stock` dilindungi oleh trigger `trg_products_prevent_direct_stock_update` sehingga perintah `UPDATE products SET stock = ...` langsung ditolak jika tidak dipanggil dari dalam eksekusi trigger `stock_movements`.
+4. **Immutability Catatan Audit:**
+   - Baris pada `stock_movements` dilindungi trigger `trg_stock_movements_immutable` yang menolak setiap operasi `UPDATE` maupun `DELETE`.
+5. **Perhitungan Total Nota Otomatis:**
+   - Kolom `transactions.total_amount` selalu diperbarui otomatis oleh trigger `trg_transaction_items_refresh_total` setiap ada penambahan, perubahan, atau penghapusan item di `transaction_items`.
+6. **Relasi Penghapusan (`ON DELETE RESTRICT`):**
+   - Seluruh foreign key menggunakan opsi `ON DELETE RESTRICT` sehingga produk yang sudah memiliki riwayat penjualan atau pergerakan stok tidak dapat dihapus secara keras dari database. Gunakan flag soft-delete `is_active = false`.
 
-| Status | `server_transaction_id` | `processed_at` | `error_message` |
-| --- | --- | --- | --- |
-| `received` | null | null | null |
-| `processed` | required | required | null |
-| `failed` | null | required | required |
+---
 
-## Constraints and indexes
+## Idempotensi Transaksi & Alur Sinkronisasi Offline
 
-- Primary keys use `BIGSERIAL`; all relations use foreign keys with `ON DELETE RESTRICT`, preserving receipt and stock audit history.
-- Check constraints reject blank identifiers/names/units, negative monetary values and stock, zero/negative item quantities, invalid enum-like values, inconsistent stock arithmetic, and invalid sync-state combinations.
-- The unique constraints on transaction and sync client IDs support reliable retries. No second generic idempotency key is stored.
-- Indexes cover active-product name lookup, transaction dates/status, receipt-item joins, product/transaction stock-history lookups, and sync status/device queries. PostgreSQL also creates indexes for primary and unique constraints.
+Untuk mencegah pencatatan transaksi ganda akibat gangguan jaringan atau retry pengiriman:
+1. Browser kasir membuat satu UUID stabil (`crypto.randomUUID()`) sebelum menyimpan nota ke penyimpanan lokal (`localStorage`).
+2. Saat dikirim ke server (`POST /api/dashboard/receipts`), backend mengunci transaksi secara atomik menggunakan advisory lock PostgreSQL:
+   ```sql
+   SELECT pg_advisory_xact_lock(hashtextextended(clientId, 0));
+   ```
+3. Backend memeriksa apakah `client_transaction_id` sudah ada pada tabel `transactions`:
+   - Jika sudah ada, backend langsung mengembalikan nomor nota yang sudah tercatat tanpa membuat transaksi baru (idempoten).
+   - Jika belum ada, backend memvalidasi pelanggan, mengunci stok produk terkait (`FOR UPDATE`), memeriksa kecukupan stok, menyimpan baris `transactions`, menyimpan rincian `transaction_items`, mencatat pengurangan stok pada `stock_movements` jika status `ready`, dan mencatat `sync_records` dengan status `'processed'`.
+4. Seluruh rangkaian operasi tersebut dijalankan di dalam satu database transaction PostgreSQL (`BEGIN ... COMMIT`). Jika ada kesalahan (misalnya stok tidak mencukupi atau harga berubah), transaksi otomatis di-rollback tanpa menyisakan data parsial.
 
-## Stock-change rules
+---
 
-1. Create a product with stock `0`.
-2. Add opening inventory through a `restock` row in `stock_movements`.
-3. For a sale, insert its receipt and lines, then one negative `sale` movement per sold product, inside one database transaction.
-4. The movement trigger locks each product row and refuses a change that would make stock negative. Direct updates to `products.stock` and edits/deletes of movement history are rejected.
-5. Deactivate (`is_active = false`) a product with history instead of deleting it. Foreign keys also prevent accidental deletion of referenced products.
+## Verifikasi Migration & Temuan Database
 
-Migration `002_dashboard.sql` adds customer records, product categories, customer snapshots, and fulfillment status. The dashboard API writes each receipt, its item snapshots, and its sync record in one PostgreSQL transaction. Submitting a ready receipt or finalizing a draft also writes a stock movement for each item. A receipt already marked ready does not deduct stock again when marked delivered.
-
-## Idempotency and offline synchronization
-
-The device generates one UUID before saving an offline receipt. The server uses that UUID in both `transactions.client_transaction_id` and `sync_records.client_transaction_id` because the former identifies the business receipt and the latter must record failed requests even before a receipt exists. This deliberate cross-table reference is the only duplicated idempotency value—there is no extra idempotency-key column.
-
-On sync, the backend should begin a database transaction, lock or create the `sync_records` row, and return the existing server receipt immediately when its status is `processed`. For a new or retried record, it creates/finds the receipt by `transactions.client_transaction_id`, writes receipt lines and stock movements, then sets the sync record to `processed` with the server transaction ID. Any failure rolls back receipt and stock changes; the backend may then record the `failed` state with its error message in a separate short transaction.
-
-## Running and verifying migrations
-
-From `backend/`:
-
-```bash
-npm run migrate
-npm run db:verify
+### Cara Menjalankan Migrasi & Verifikasi
+Dari folder `backend/`:
+```powershell
+npm.cmd run migrate    # Menjalankan script run-migrations.js dengan advisory lock
+npm.cmd run db:verify  # Memverifikasi 5 tabel awal, foreign key, dan constraint
 ```
 
-`migrate` creates the small `schema_migrations` bookkeeping table, takes a PostgreSQL advisory lock, checks the SHA-256 checksum of each applied migration, and runs each new SQL file atomically. It never drops a database, table, or data. `db:verify` checks the five application tables and foreign keys, then tests invalid price, stock, and quantity cases in a transaction that is always rolled back.
+### Temuan Implementasi Database untuk Pekerjaan Lanjutan
+Berdasarkan pemeriksaan langsung antara migrasi dan skrip verifikasi:
+1. Skrip `backend/scripts/verify-database.js` saat ini baru memverifikasi 5 tabel dari migrasi `001_initial_schema.sql` (`products`, `transactions`, `transaction_items`, `stock_movements`, `sync_records`). Tabel `customers` dan `dashboard_settings` dari `002_dashboard.sql` belum dimasukkan ke dalam daftar asersi `expectedTables` skrip tersebut (telah dicatat sebagai rekomendasi pekerjaan lanjutan).
+2. Perubahan skema database di masa mendatang wajib dibuat melalui file migrasi baru (misalnya `003_xxx.sql`), tidak diperkenankan mengubah file migrasi `001` atau `002` karena mekanisme checksum SHA-256 pada tabel `schema_migrations` akan menolak file yang berubah.

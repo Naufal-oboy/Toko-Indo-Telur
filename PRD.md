@@ -9,13 +9,30 @@
 | UMKM | Toko Indo Telur, grosir sembako di Bontang |
 | Judul use case | Kemudahan Pembuatan Nota Penjualan dan Penanganan Pesanan Pelanggan untuk Toko Indo Telur |
 | Jenis produk | MVP aplikasi kasir web (browser Android), layanan data/stok, dan chatbot WhatsApp nomor uji |
-| Status dokumen | **Draft rencana berdasarkan Project Plan revisi**, belum merupakan bukti implementasi |
+| Status dokumen | **Dokumentasi Kebutuhan & Status Sinkronisasi Implementasi Aktual (26 November 2026)** |
 | Horizon perencanaan | Empat minggu; tanggal kalender resmi belum ditetapkan dalam dokumen sumber |
 | Sasaran validasi | Pemilik UMKM mencoba alur nota, printer, pemulihan data, dan chatbot; memberi feedback |
 
 > **Status perubahan scope:** Pengaturan stok otomatis, sinkronisasi data server, chatbot pertanyaan harga/stok, dan ekspor CSV **dipertahankan sebagai fitur rencana tim** karena tercantum dalam Project Plan. Keempatnya merupakan perluasan dari use case awal yang masih harus dikonfirmasi kepada PIC UMKM dan Tim Asah. Tidak ada fitur lama yang dihapus dari PRD ini.
 
-> **Status implementasi per 21 November 2026:** Backend Express sudah dapat memeriksa koneksi PostgreSQL. Migration initial telah diterapkan untuk produk, transaksi, item transaksi, pergerakan stok, dan catatan sinkronisasi. Constraint untuk nominal, kuantitas, dan field snapshot nota; trigger untuk total/audit stok/pencegahan stok negatif; serta mekanisme idempotency telah diuji. Product API CRUD telah diimplementasikan dan diuji. Endpoint penjualan, sinkronisasi aplikasi, chatbot, cetak, dan fitur offline belum diimplementasikan.
+> **Status implementasi per 26 November 2026 (Diperbarui):**
+> - **Backend & Database:** Telah menerapkan migration `001_initial_schema.sql` dan `002_dashboard.sql` mencakup tabel `products`, `transactions`, `transaction_items`, `stock_movements`, `sync_records`, `customers`, dan `dashboard_settings`. Endpoint health, Product API (`/api/products`), dan Dashboard API (`/api/dashboard`) telah diverifikasi melalui skrip pengujian integrasi otomatis.
+> - **Frontend:** Telah mengimplementasikan pembuatan nota 3-langkah, katalog produk/stok, riwayat nota terfilter, ekspor CSV, manajemen pelanggan, backup/restore JSON, dan layout cetak struk 58 mm.
+> - **Offline & Sync:** Saat ini berstatus **Partially Implemented**, berupa antrean transaksi lokal di `localStorage` ketika server tidak terjangkau (bukan arsitektur offline-first penuh).
+> - **AI Service:** Telah mengimplementasikan REST API FastAPI (`/ai/health`, `/ai/predict-intent`, `/ai/suggest-reply`, `/ai/chatbot/respond`), model intent klasifikasi `tfidf_linear_svc`, toleransi typo RapidFuzz, dan generative reply Google Gemini API dengan factuality guard & fallback.
+> - **Integrasi WhatsApp & Deployment:** Masih berstatus **Planned / Unverified** (belum ada webhook WhatsApp live dan belum ada URL deployment publik).
+
+### Definisi Status Implementasi pada PRD
+
+Untuk memastikan transparansi progres tanpa menghapus kebutuhan awal, setiap kebutuhan dikategorikan ke dalam status berikut:
+
+| Status | Keterangan |
+| --- | --- |
+| **Implemented** | Fitur telah tersedia di kode sumber dan telah diverifikasi melalui pengujian atau pemeriksaan langsung. |
+| **Partially Implemented** | Fitur baru diimplementasikan sebagian (misalnya antrean lokal tanpa offline-first penuh, atau integrasi AI tanpa webhook WhatsApp langsung). |
+| **Planned** | Fitur tetap masuk dalam ruang lingkup komitmen, tetapi belum diimplementasikan pada kode saat ini. |
+| **Needs Testing** | Kode/fitur telah tersedia, namun memerlukan verifikasi fisik atau pengujian komprehensif lebih lanjut (misal printer fisik). |
+| **Unverified** | Belum ada bukti pengujian atau verifikasi lapangan yang memadai (misal deployment publik atau feedback UMKM). |
 
 ## 1. Ringkasan produk
 
@@ -88,25 +105,25 @@ Seluruh butir di bawah merupakan **target**, bukan pernyataan fitur sudah selesa
 
 ### 5.1 Functional requirements (FR)
 
-| ID | Fitur / requirement | Prioritas sumber | Kriteria penerimaan ringkas |
-| --- | --- | --- | --- |
-| FR-01 | Pembuatan nota digital | Wajib (Proyek) | Produk dan jumlah bisa dipilih, total otomatis, nota tersimpan, input tidak valid ditolak. |
-| FR-02 | CRUD produk & harga | Wajib (Proyek) | Produk dapat ditambah, diubah, dihapus; harga historis nota tidak berubah. |
-| FR-03 | Manajemen stok otomatis | Wajib (Proyek) | Stok berubah setelah transaksi tersimpan; kuantitas melebihi stok diberi peringatan. |
-| FR-04 | Riwayat nota | Wajib (Proyek) | Nota tampil kembali dengan tanggal, item, harga saat transaksi, dan total yang sama. |
-| FR-05 | Mode kasir offline/online | Wajib (Proyek) | Nota/produk/stok lokal tetap bisa dipakai offline setelah penyiapan awal, data tetap ada setelah aplikasi ditutup. |
-| FR-06 | Cetak nota thermal Bluetooth 58 mm | Wajib (Proyek) | Nota 1–10 item dapat dicetak dan terbaca di printer toko; kegagalan cetak tidak menghapus nota. |
-| FR-07 | Backup dan restore melalui file | Wajib (Proyek) | Data produk, stok, nota pulih pada HP lain; file invalid ditolak tanpa merusak data lama. |
-| FR-08 | Sinkronisasi transaksi dan stok | Wajib (Proyek) | Transaksi offline terkirim saat online; retry tidak membuat nota ganda. |
-| FR-09 | Server dan database stok online | Wajib (Proyek) | Produk/harga/stok tersimpan di server dan dapat diakses web kasir serta chatbot. |
-| FR-10 | Balasan WhatsApp dasar | Wajib (Proyek) | Nomor uji membalas sapaan, petunjuk format pesan, dan pesan di luar aturan. |
-| FR-11 | Chatbot WhatsApp harga & stok | Wajib (Proyek) | Jawaban berdasarkan data server; produk tidak dikenal ditangani; bot tidak mengubah stok. |
-| FR-12 | Pengujian dan perbaikan | Wajib (Proyek) | Uji fitur normal/invalid/offline/sinkronisasi dicatat, bug diperbaiki lalu diuji ulang. |
-| FR-13 | Demonstrasi dan feedback UMKM | Wajib (Proyek) | Pemilik mencoba nota, cetak, chatbot, dan memberikan evaluasi. |
-| FR-14 | UI status aksi & panduan | Wajib (Main Quest, FS) | Indikator loading/berhasil/gagal ditampilkan; alur dapat dicoba mengikuti panduan. |
-| FR-15 | Website web publik | Wajib (Main Quest, FS) | URL dapat dibuka browser HP dan alur inti dapat diakses saat demo. |
-| FR-16 | Berbagi nota digital gambar/PDF | Wajib (Use Case) | Berkas yang dibagikan sama dengan nota tersimpan; dapat dikirim ke pengantar/pelanggan. |
-| FR-17 | Ekspor riwayat nota CSV | Tambahan (Proyek) | CSV terunduh dan dapat dibuka dalam aplikasi spreadsheet. |
+| ID | Fitur / requirement | Prioritas sumber | Status Aktual | Kriteria penerimaan & Catatan Verifikasi |
+| --- | --- | --- | :---: | --- |
+| FR-01 | Pembuatan nota digital | Wajib (Proyek) | **Implemented** | Pemilik memilih pelanggan, memilih produk & kuantitas, total terhitung otomatis, snapshot nama/satuan/harga tersimpan pada database, input invalid/negatif ditolak. |
+| FR-02 | CRUD produk & harga | Wajib (Proyek) | **Implemented** | Produk dapat ditambah, diubah, dinonaktifkan (soft delete). Perubahan harga produk master tidak mengubah nota historis karena menggunakan snapshot `transaction_items`. |
+| FR-03 | Manajemen stok otomatis | Wajib (Proyek) | **Implemented** | Stok dipantau melalui trigger audit `stock_movements`. Nota berstatus `ready` langsung mengurangi stok atomik, sedangkan nota `draft` belum memotong stok hingga ditandai `ready`. Penjualan melebihi stok ditolak sistem. |
+| FR-04 | Riwayat nota | Wajib (Proyek) | **Implemented** | Riwayat nota menampilkan nomor nota, pelanggan, tanggal/waktu, item, total, serta filter pencarian, rentang waktu (hari ini, 7 hari, 30 hari), dan status nota (`draft`, `ready`, `delivered`). |
+| FR-05 | Mode kasir offline/online | Wajib (Proyek) | **Partially Implemented** | Nota yang gagal dikirim saat koneksi terputus disimpan ke antrean browser (`localStorage` dengan key `indo-telur-receipt-queue-v1`). Belum merupakan sistem offline-first penuh karena katalog master dan pelanggan belum di-cache secara offline via IndexedDB/Service Worker. |
+| FR-06 | Cetak nota thermal Bluetooth 58 mm | Wajib (Proyek) | **Needs Testing** | Antarmuka cetak nota tersedia via `window.print()` dengan stylesheet `@media print` lebar 58 mm (32 karakter/baris). Kompatibilitas fisik langsung dengan printer toko **Iware ZJ-5809** belum diverifikasi. |
+| FR-07 | Backup dan restore melalui file | Wajib (Proyek) | **Implemented** | Ekspor data cadangan produk, pelanggan, riwayat nota, dan stok terkini ke format JSON v2 (`/api/dashboard/backup`). Pemulihan (`/api/dashboard/restore`) memvalidasi format dan mewajibkan database kosong untuk mencegah kerusakan audit trail stok. |
+| FR-08 | Sinkronisasi transaksi dan stok | Wajib (Proyek) | **Partially Implemented** | Antrean transaksi offline dapat disinkronkan manual saat koneksi kembali. Idempotensi didukung oleh `client_transaction_id` UUID dan tabel `sync_records` untuk mencegah nota ganda. |
+| FR-09 | Server dan database stok online | Wajib (Proyek) | **Implemented** | Database PostgreSQL (7 tabel) menyimpan produk, pelanggan, stok, transaksi, dan log sinkronisasi. Dashboard Express dan AI Service FastAPI mengakses sumber data server. |
+| FR-10 | Balasan WhatsApp dasar | Wajib (Proyek) | **Planned** | Respons pesan sapaan, panduan cara pemesanan, dan fallback luar cakupan telah diimplementasikan pada AI Service, namun konektor/webhook langsung ke nomor WhatsApp resmi masih direncanakan. |
+| FR-11 | Chatbot WhatsApp harga & stok | Wajib (Proyek) | **Partially Implemented** | AI Service membaca katalog server secara *read-only* (`GET /api/products`), mencocokkan produk toleran salah ketik, menyertakan disclaimer stok perkiraan, dan memanggil Gemini API dengan *factuality guard*. Integrasi WhatsApp live masih direncanakan. |
+| FR-12 | Pengujian dan perbaikan | Wajib (Proyek) | **Implemented** | Pengujian integrasi database (`npm run db:verify`), Product API (`npm run test:products`), Dashboard API (`npm run test:dashboard`), build frontend, test suite AI service (`pytest`), dan evaluasi dataset DS telah diverifikasi. |
+| FR-13 | Demonstrasi dan feedback UMKM | Wajib (Proyek) | **Unverified** | Alur demo lokal kasir dan simulator AI telah siap; pengujian lapangan bersama pemilik UMKM dan feedback formal belum terdokumentasi. |
+| FR-14 | UI status aksi & panduan | Wajib (Main Quest, FS) | **Implemented** | Antarmuka kasir dilengkapi banner status sinkronisasi, indikator loading/proses, pesan error validasi yang jelas, serta status online/offline. |
+| FR-15 | Website web publik | Wajib (Main Quest, FS) | **Planned** | Belum ada URL hosting publik yang terverifikasi untuk demonstrasi online. |
+| FR-16 | Berbagi nota digital gambar/PDF | Wajib (Use Case) | **Partially Implemented** | Fitur berbagi nota saat ini menggunakan Web Share API (`navigator.share`) dengan teks ringkasan nota, atau fallback salin clipboard dan unduh file `.txt`. Belum mengimplementasikan ekspor format gambar (PNG/JPG) atau PDF. |
+| FR-17 | Ekspor riwayat nota CSV | Tambahan (Proyek) | **Implemented** | Tombol "Ekspor CSV" pada menu riwayat nota menghasilkan file `riwayat-nota.csv` yang dapat dibuka di Microsoft Excel atau Google Sheets. |
 
 **Kelengkapan:** FR-01 s.d. FR-17 mencakup seluruh fitur kasir, stok, server, chatbot, operasional uji/demo, berbagi nota, dan CSV dari Project Plan terbaru. Persyaratan DS/AI dijabarkan terpisah pada §8 agar tidak tertukar dengan fungsi aplikasi pelanggan.
 
@@ -235,26 +252,43 @@ Seluruh butir di bawah merupakan **target**, bukan pernyataan fitur sudah selesa
 
 Skema ini adalah baseline implementasi untuk MVP. Perubahan kompatibel ditambahkan melalui migration baru; jangan mengubah migration yang telah dijalankan. ERD, tipe data, constraint, indeks, dan kontrak idempotency dirinci dalam [Database Schema](./docs/database-schema.md).
 
-### 10.3 Endpoint awal (contoh kontrak untuk diskusi)
+### 10.3 Endpoint API Terverifikasi vs Rencana
 
-| Operasi | Usulan endpoint | Tujuan |
-| --- | --- | --- |
-| Health check | `GET /api/health` | **Sudah tersedia** untuk memeriksa backend. |
-| Database check | `GET /api/db-check` | **Sudah tersedia** untuk memeriksa koneksi PostgreSQL. |
-| Daftar produk | `GET /api/products` | **Sudah tersedia** untuk mengambil semua produk dengan urutan konsisten. |
-| Detail produk | `GET /api/products/:id` | **Sudah tersedia**; ID divalidasi dan produk yang tidak ada menghasilkan 404. |
-| Tambah produk | `POST /api/products` | **Sudah tersedia**; validasi nama/harga dan SKU unik, dengan stok awal 0. |
-| Ubah produk | `PUT /api/products/:id` | **Sudah tersedia**; stok tidak dapat diubah melalui endpoint ini. |
-| Hapus produk | `DELETE /api/products/:id` | **Sudah tersedia** bila tidak memiliki relasi; konflik riwayat menghasilkan 409. |
-| Simpan nota | `POST /api/invoices` | Menyimpan transaksi valid |
-| Riwayat nota | `GET /api/invoices` | Menampilkan transaksi terdahulu |
-| Sinkronisasi batch | `POST /api/sync/invoices` | Mengirim transaksi offline secara idempoten |
-| Baca stok/harga untuk aplikasi/bot | `GET /api/products/:id` | Memakai endpoint detail produk yang sama secara read-only. |
-| Klasifikasi intent | `POST /ai/predict-intent` | Inferensi model yang disajikan FastAPI/Flask |
-| Saran respons | `POST /ai/suggest-reply` | Memanggil API generatif di sisi server |
-| Pesan masuk | Webhook sesuai platform WhatsApp yang dipilih | Menerima pesan nomor uji |
+#### A. Backend Express (Port 3000) — Terverifikasi di Kode
 
-Selain health check, database check, dan Product API, path di atas masih **contoh rancangan**, bukan endpoint yang sudah dibuat. Gunakan satu database transaction untuk penyimpanan nota, item, pergerakan stok, dan status sinkronisasi; gunakan skema error, autentikasi, dan rate limit yang ditetapkan tim pada implementasi.
+| Operasi | Endpoint Aktual | Status | Keterangan |
+| --- | --- | :---: | --- |
+| Health check | `GET /api/health` | **Implemented** | Memeriksa ketersediaan backend Express. |
+| Database check | `GET /api/db-check` | **Implemented** | Memeriksa koneksi langsung ke PostgreSQL dan waktu server. |
+| Daftar produk | `GET /api/products` | **Implemented** | Mengambil seluruh produk master terurut nama dan ID. |
+| Detail produk | `GET /api/products/:id` | **Implemented** | Mengambil satu produk berdasarkan ID; validasi ID numerik. |
+| Tambah produk | `POST /api/products` | **Implemented** | Menambah produk baru ke tabel `products` (stok default 0). |
+| Ubah produk | `PUT /api/products/:id` | **Implemented** | Mengubah nama, harga, unit, sku, deskripsi, is_active. Stok tidak bisa diubah via endpoint ini. |
+| Hapus produk | `DELETE /api/products/:id` | **Implemented** | Menghapus produk (ditolak 409 jika berelasi dengan transaksi/stok). |
+| Dashboard snapshot | `GET /api/dashboard/` | **Implemented** | Mengambil agregat items, customers, receipts (lengkap lines), dan settings. |
+| Tambah pelanggan | `POST /api/dashboard/customers` | **Implemented** | Menambah pelanggan baru ke tabel `customers`. |
+| Tambah produk dashboard | `POST /api/dashboard/products` | **Implemented** | Menambah produk dashboard sekaligus mencatat stok awal via `stock_movements`. |
+| Ubah produk dashboard | `PUT /api/dashboard/products/:id` | **Implemented** | Mengubah produk & menyesuaikan stok via `stock_movements` (cek optimistic concurrency `expectedStock`). |
+| Nonaktifkan produk | `DELETE /api/dashboard/products/:id` | **Implemented** | Soft delete produk dashboard (`is_active = false`). |
+| Simpan nota | `POST /api/dashboard/receipts` | **Implemented** | Menyimpan nota (`draft`/`ready`), snapshot item, potong stok jika `ready`, dan catat `sync_records`. |
+| Ubah status nota | `PATCH /api/dashboard/receipts/:number/status` | **Implemented** | Mengubah status nota (`ready`, `delivered`); memotong stok jika beralih dari `draft` ke `ready`. |
+| Backup database | `POST /api/dashboard/backup` | **Implemented** | Mengunduh cadangan JSON v2 (items, customers, receipts, settings). |
+| Restore database | `POST /api/dashboard/restore` | **Implemented** | Memulihkan data cadangan JSON v2 ke database kosong yang sudah dimigrasi. |
+
+#### B. AI Service FastAPI (Port 8000) — Terverifikasi di Kode
+
+| Operasi | Endpoint Aktual | Status | Keterangan |
+| --- | --- | :---: | --- |
+| Health check AI | `GET /ai/health` | **Implemented** | Status layanan, model loaded, status konfigurasi Gemini & auth. |
+| Klasifikasi intent | `POST /ai/predict-intent` | **Implemented** | Memprediksi intent pesan (`sapaan`, `format_pesanan`, `cek_stok`, `cek_harga`, `lainnya`). |
+| Saran balasan | `POST /ai/suggest-reply` | **Implemented** | Menghasilkan balasan generatif berbasis Gemini atau fallback aturan. |
+| Simulator respons chatbot | `POST /ai/chatbot/respond` | **Implemented** | Alur lengkap respons chat (klasifikasi + katalog produk + balasan). |
+
+#### C. Integrasi Eksternal (Masih Berstatus Rencana)
+
+| Operasi | Rencana Jalur | Status | Keterangan |
+| --- | --- | :---: | --- |
+| Webhook pesan WhatsApp | Webhook HTTP POST | **Planned** | Gateway WhatsApp Business API / sandbox belum dihubungkan ke AI service. |
 
 ## 11. Rencana pengujian dan acceptance scenarios
 
