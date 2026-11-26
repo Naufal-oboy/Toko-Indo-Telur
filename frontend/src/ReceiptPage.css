@@ -1,0 +1,513 @@
+﻿.nota-page {
+  --nota-ink: #172321;
+  --nota-muted: #53625f;
+  --nota-accent: #0c6862;
+  --nota-line: #dce3df;
+  --nota-tint: #ecf6f4;
+  --nota-gutter: clamp(22px, 2.6vw, 50px);
+  display: grid;
+  grid-template-columns: clamp(205px, 18.7vw, 359px) minmax(0, 1fr);
+  min-height: 100svh;
+  color: var(--nota-ink);
+  background: #f3f5f2;
+  font: 20px/1.4 'Segoe UI', system-ui, sans-serif;
+  letter-spacing: -.025em;
+}
+
+.nota-page a { color: inherit; text-decoration: none; }
+.nota-page button, .nota-page input { font: inherit; letter-spacing: inherit; }
+.nota-page button { color: inherit; background: #fff; border: 1px solid var(--nota-line); border-radius: 15px; padding: 10px 18px; }
+.nota-page button:hover:not(:disabled) { background: #f5faf9; }
+.nota-page button:disabled { opacity: 1; }
+.nota-icon { display: block; flex: 0 0 auto; width: 25px; height: 25px; }
+
+.nota-sidebar { display: flex; flex-direction: column; min-width: 0; background: #fff; border-right: 1px solid var(--nota-line); }
+.nota-brand { display: flex; align-items: center; gap: 15px; padding: 24px; line-height: 1.15; }
+.nota-brand small { display: block; color: var(--nota-muted); font-size: 19px; margin-top: 2px; }
+.nota-logo { display: grid; place-items: center; width: 50px; height: 50px; flex: 0 0 auto; border-radius: 15px; background: var(--nota-accent); }
+.nota-logo i { display: grid; place-items: center; width: 17px; height: 24px; background: #edf8f6; border-radius: 52% 52% 48% 48% / 63% 63% 37% 37%; }
+.nota-logo i::after { content: ''; width: 7px; height: 2px; background: var(--nota-accent); box-shadow: 0 4px var(--nota-accent), 0 -4px var(--nota-accent); border-radius: 2px; }
+.nota-sidebar nav { margin: 11px 14px 0; display: grid; gap: 5px; }
+.nota-sidebar nav > button, .nota-sidebar nav > a, .nota-exit a {
+  display: flex; align-items: center; gap: 15px; text-align: left; min-height: 60px; padding: 12px 20px;
+  border: 0; border-radius: 15px; color: var(--nota-muted); font-weight: 600; white-space: nowrap;
+}
+.nota-sidebar nav .nota-selected { background: var(--nota-tint); color: #075551; }
+.nota-sidebar nav a:hover, .nota-exit a:hover { background: #f5faf9; }
+.nota-sidebar hr { width: calc(100% - 30px); margin: 15px auto 10px; border: 0; border-top: 1px solid var(--nota-line); }
+.nota-count { margin-left: auto; display: grid; place-items: center; min-width: 30px; height: 30px; border-radius: 50%; background: #fff2da; color: #814500; font-size: 17px; }
+.nota-exit { margin-top: auto; border-top: 1px solid var(--nota-line); padding: 15px 14px; }
+
+.nota-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 99px; padding: 15px var(--nota-gutter); background: #fff; border-bottom: 1px solid var(--nota-line); }
+.nota-date { color: var(--nota-muted); font-size: 19px; }
+.nota-account { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.nota-online { display: flex; align-items: center; gap: 9px; background: #e6f4eb; color: #14693b; border-radius: 28px; padding: 9px 15px; margin-right: 5px; }
+.nota-online .nota-icon { width: 21px; height: 21px; }
+.nota-avatar, .nota-initial { display: grid; place-items: center; flex: 0 0 auto; background: var(--nota-tint); color: #075551; font-weight: 700; }
+.nota-avatar { width: 50px; height: 50px; border-radius: 50%; }
+
+.nota-content { padding: 42px var(--nota-gutter) 48px; }
+.nota-heading { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin-bottom: 25px; }
+.nota-heading h1 { font-size: 42px; font-weight: 750; letter-spacing: -.055em; line-height: 1.15; }
+.nota-heading p { color: var(--nota-muted); margin-top: 8px; }
+.nota-steps { flex: 0 1 700px; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 0; margin: 0; }
+.nota-steps li { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 8px 15px; border: 1px solid var(--nota-line); border-radius: 15px; background: #fff; color: var(--nota-muted); font-weight: 600; }
+.nota-steps li span { display: grid; place-items: center; flex: 0 0 auto; width: 35px; height: 35px; background: #f2f4f1; border-radius: 50%; }
+.nota-steps [aria-current="step"] { color: #075551; border-color: var(--nota-accent); background: #eef8f6; }
+.nota-steps [aria-current="step"] span { background: var(--nota-accent); color: white; }
+
+.nota-tools { display: flex; gap: 15px; margin-bottom: 20px; }
+.nota-page input { border: 1px solid #c4cfca; border-radius: 15px; padding: 12px 20px; color: inherit; }
+.nota-tools input { flex: 1; min-width: 0; min-height: 62px; }
+.nota-tools input::placeholder { color: #60706c; opacity: 1; }
+.nota-tools button { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 20px; min-height: 62px; white-space: nowrap; font-weight: 600; }
+
+.nota-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; }
+.nota-page .nota-card { display: grid; grid-template-columns: 60px minmax(0, 1fr) 24px; align-items: center; gap: 20px; min-height: 135px; padding: 19px 20px; border-radius: 20px; text-align: left; }
+.nota-initial { width: 60px; height: 60px; border-radius: 15px; font-size: 24px; }
+.nota-card-copy { display: grid; gap: 2px; overflow-wrap: anywhere; }
+.nota-card-copy strong { font-size: 24px; font-weight: 700; line-height: 1.25; margin-bottom: 2px; }
+.nota-card-copy span, .nota-card-copy small, .nota-card > .nota-icon { color: var(--nota-muted); }
+.nota-card-copy small { font-size: 19px; }
+.nota-repeat { margin-top: 34px; color: var(--nota-muted); }
+.nota-page .nota-repeat button { padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--nota-accent); text-decoration: underline; text-underline-offset: 5px; font-weight: 600; }
+
+.nota-message { margin-block: 0 16px; color: var(--nota-accent); }
+.nota-page .nota-primary { background: var(--nota-accent); color: #fff; }
+.nota-page .nota-primary:hover:not(:disabled) { background: #095550; }
+.nota-page .nota-primary:disabled { opacity: .55; }
+
+@media (max-width: 1500px) {
+  .nota-heading { align-items: start; flex-direction: column; }
+  .nota-steps { flex-basis: auto; width: min(100%, 700px); }
+  .nota-page .nota-card { gap: 12px; grid-template-columns: 48px minmax(0, 1fr) 22px; padding: 15px; }
+  .nota-initial { width: 48px; height: 48px; }
+  .nota-card-copy strong { font-size: 21px; }
+}
+
+@media (max-width: 1100px) {
+  .nota-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 760px) {
+  .nota-page { display: block; }
+  .nota-sidebar { border-right: 0; border-bottom: 1px solid var(--nota-line); }
+  .nota-brand { padding: 14px var(--nota-gutter) 8px; }
+  .nota-sidebar nav { display: flex; flex-wrap: wrap; margin: 6px var(--nota-gutter) 10px; }
+  .nota-sidebar nav > :is(a, button), .nota-exit a { min-height: 40px; padding: 6px 9px; font-size: 16px; gap: 6px; }
+  .nota-sidebar nav .nota-icon { width: 19px; height: 19px; }
+  .nota-sidebar hr { display: none; }
+  .nota-exit { padding: 2px var(--nota-gutter); }
+  .nota-topbar { min-height: 74px; flex-wrap: wrap; }
+  .nota-account { font-size: 16px; }
+  .nota-avatar { width: 36px; height: 36px; }
+  .nota-content { padding-top: 24px; }
+}
+
+@media (max-width: 520px) {
+  .nota-grid { grid-template-columns: 1fr; }
+  .nota-tools { flex-wrap: wrap; }
+  .nota-tools input { flex-basis: 100%; }
+  .nota-steps li { gap: 5px; padding: 6px; font-size: 14px; }
+  .nota-steps li span { width: 25px; height: 25px; }
+}
+
+.nota-steps .nota-step-done { color: var(--nota-ink); }
+.nota-steps .nota-step-done span { background: #e6f4eb; color: #14693b; }
+.nota-step-done .nota-icon { width: 18px; height: 18px; }
+
+.nota-order-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 500px); gap: 25px; align-items: start; }
+.nota-order-panel, .nota-item-card { background: #fff; border: 1px solid var(--nota-line); border-radius: 20px; }
+.nota-muted { color: var(--nota-muted); }
+.nota-customer-bar { display: flex; align-items: center; gap: 15px; min-height: 92px; padding: 14px 20px; margin-bottom: 20px; }
+.nota-customer-bar > .nota-icon { color: var(--nota-accent); }
+.nota-customer-bar > button { margin-left: auto; }
+.nota-page .nota-text-button { display: inline-flex; align-items: center; gap: 8px; background: transparent; color: var(--nota-accent); border: 0; font-weight: 600; }
+.nota-item-search { display: flex; align-items: center; gap: 15px; min-height: 70px; padding-inline: 20px; color: var(--nota-muted); border: 1px solid #c4cfca; border-radius: 15px; background: #fff; }
+.nota-item-search input { flex: 1; color: var(--nota-ink); border: 0; padding: 8px 0; border-radius: 0; font-size: 23px; }
+.nota-item-search input::placeholder { color: #657470; }
+.nota-categories { display: flex; gap: 10px; overflow-x: auto; padding: 0 0 6px; margin: 15px 0; }
+.nota-page .nota-categories button { flex: 0 0 auto; min-height: 55px; padding-inline: 20px; border-radius: 30px; font-weight: 600; }
+.nota-page .nota-categories button[aria-pressed="true"] { background: var(--nota-accent); color: #fff; border-color: var(--nota-accent); }
+.nota-item-grid, .nota-review { display: grid; gap: 15px; }
+.nota-item-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.nota-review { gap: 20px; }
+.nota-item-card { display: grid; gap: 16px; padding: 20px; }
+.nota-item-selected { border-color: #9edbd0; }
+.nota-item-head, .nota-item-controls, .nota-quantity { display: flex; align-items: center; }
+.nota-item-head { gap: 15px; }
+.nota-item-head h2 { font-size: 24px; margin-bottom: 4px; }
+.nota-item-icon { display: grid; place-items: center; width: 50px; height: 50px; flex: 0 0 auto; border-radius: 15px; background: var(--nota-tint); color: var(--nota-accent); }
+.nota-item-icon .nota-icon { width: 28px; height: 28px; }
+.nota-item-head .nota-item-icon { width: 60px; height: 60px; }
+.nota-item-egg { background: #faefda; color: #8b570d; }
+.nota-item-grain { background: #efede2; color: #6a5b2c; }
+.nota-sample { display: inline-block; border: 1px dashed #bfcac4; color: var(--nota-muted); border-radius: 8px; padding: 0 7px; font-size: 17px; }
+.nota-item-controls { justify-content: space-between; gap: 8px; font-weight: 600; flex-wrap: wrap; }
+.nota-quantity { gap: 5px; margin-left: auto; }
+.nota-quantity button, .nota-quantity output { display: grid; place-items: center; min-height: 60px; font-size: 24px; }
+.nota-page .nota-quantity button { width: 60px; padding: 0; }
+.nota-page .nota-quantity button:disabled { color: #99a6a0; }
+.nota-page .nota-quantity button.nota-primary:disabled { color: white; }
+.nota-quantity output { min-width: 78px; padding-inline: 8px; border: 1px solid var(--nota-line); border-radius: 15px; }
+.nota-item-selected output { color: var(--nota-accent); background: var(--nota-tint); border-color: #9edbd0; }
+
+.nota-cart { position: sticky; top: 18px; }
+.nota-order-header { display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 80px; padding: 15px 25px; border-bottom: 1px solid var(--nota-line); }
+.nota-order-header h2, .nota-recipient h2 { font-size: 25px; }
+.nota-cart-count { white-space: nowrap; border-radius: 25px; padding: 6px 15px; background: #f2f4f1; color: var(--nota-muted); }
+.nota-cart-empty { display: grid; justify-items: center; align-content: center; gap: 10px; min-height: 230px; text-align: center; padding: 20px; }
+.nota-cart-empty .nota-icon { width: 48px; height: 48px; color: #99a6a0; }
+.nota-cart-empty p { color: var(--nota-muted); }
+.nota-order-rows { padding-inline: 25px; }
+.nota-order-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; padding-block: 16px; }
+.nota-order-row + .nota-order-row { border-top: 1px solid var(--nota-line); }
+.nota-cart .nota-order-row { align-items: start; }
+.nota-cart .nota-order-row button { color: var(--nota-muted); }
+.nota-cart-footer { border-top: 1px solid var(--nota-line); padding: 15px 25px 20px; }
+.nota-total { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; color: var(--nota-muted); }
+.nota-total > strong { font-size: clamp(28px, 2.2vw, 42px); font-weight: 750; color: var(--nota-ink); white-space: nowrap; }
+.nota-page .nota-wide-button { width: 100%; display: flex; justify-content: center; align-items: center; gap: 12px; min-height: 70px; font-size: 23px; font-weight: 700; }
+.nota-page .nota-wide-button:disabled { opacity: 1; background: #c7d0cc; color: #475551; }
+.nota-recipient, .nota-save { padding: 25px; }
+.nota-recipient { min-height: 146px; align-content: center; }
+.nota-review .nota-order-header { min-height: 90px; }
+.nota-save fieldset { display: grid; gap: 10px; padding: 0 0 20px; border: 0; border-bottom: 1px solid var(--nota-line); margin: 0 0 12px; min-width: 0; }
+.nota-save legend { padding: 0; margin-bottom: 10px; font-weight: 750; }
+.nota-save label { display: flex; align-items: center; gap: 15px; min-height: 80px; padding: 10px 20px; border: 1px solid var(--nota-line); border-radius: 15px; cursor: pointer; }
+.nota-save label:has(input:checked) { background: var(--nota-tint); border-color: var(--nota-accent); }
+.nota-save label small { display: block; font-size: 19px; color: var(--nota-muted); }
+.nota-save input[type="radio"] { width: 25px; height: 25px; margin: 0; flex-shrink: 0; accent-color: var(--nota-accent); }
+
+@media (min-width: 761px) {
+  .nota-sidebar { position: sticky; top: 0; height: 100svh; overflow-y: auto; }
+}
+@media (max-width: 1750px) {
+  .nota-order-layout { grid-template-columns: minmax(0, 1fr) minmax(290px, 35%); }
+  .nota-page .nota-quantity button, .nota-quantity output { min-height: 45px; }
+  .nota-page .nota-quantity button { width: 45px; }
+  .nota-quantity output { min-width: 48px; }
+}
+@media (max-width: 1140px) {
+  .nota-item-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 950px) {
+  .nota-order-layout { grid-template-columns: minmax(0, 1fr); }
+  .nota-cart { position: static; }
+  .nota-item-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr)); }
+}
+@media (max-width: 520px) {
+  .nota-recipient, .nota-save, .nota-order-header, .nota-cart-footer { padding-inline: 15px; }
+  .nota-order-rows { padding-inline: 15px; }
+  .nota-order-row { font-size: 17px; gap: 9px; }
+  .nota-item-search input, .nota-page .nota-wide-button { font-size: 19px; }
+}
+
+.nota-heading.nota-history-heading { flex-direction: row; align-items: end; }
+.nota-page .nota-export { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 60px; padding-inline: 20px; font-weight: 700; white-space: nowrap; }
+.nota-history-filters { padding: 20px; }
+.nota-history-search, .nota-history-date { display: flex; align-items: center; gap: 15px; }
+.nota-history-search .nota-item-search { flex: 1; min-height: 62px; min-width: 0; }
+.nota-history-search .nota-item-search input { font-size: inherit; min-width: 0; }
+.nota-history-date input { width: 226px; min-height: 62px; }
+.nota-history-filters .nota-history-chips { flex-wrap: wrap; overflow: visible; margin: 20px 0 0; padding: 0; }
+.nota-history-filters .nota-history-chips + .nota-history-chips { margin-block: 24px 5px; }
+.nota-history-summary { margin-block: 25px; color: var(--nota-muted); }
+.nota-history-summary strong { color: var(--nota-ink); }
+
+.nota-history-table { overflow: auto; }
+.nota-history-table table { min-width: 800px; }
+.nota-history-table thead { background: #f3f5f2; color: var(--nota-muted); font-size: inherit; }
+.nota-history-table th, .nota-history-table td { padding: 20px 25px; border-top: 0; }
+.nota-history-table tbody tr { border-top: 1px solid var(--nota-line); }
+.nota-history-table thead th { padding-block: 16px; font-weight: 600; }
+.nota-history-table tbody th { color: var(--nota-accent); font-family: Consolas, monospace; font-weight: 600; }
+.nota-history-table td small { display: block; color: var(--nota-muted); font-size: 19px; }
+.nota-history-table time { color: var(--nota-muted); }
+.nota-history-table :is(th, td):nth-child(4) { text-align: right; }
+.nota-history-table td:nth-child(4) { font-size: 24px; }
+.nota-history-status { display: inline-flex; align-items: center; gap: 8px; border-radius: 24px; padding: 6px 15px; font-size: 19px; font-weight: 600; white-space: nowrap; }
+.nota-history-status::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--status-dot); }
+.nota-history-draft { --status-dot: #7b8983; background: #ecefed; color: #41504a; }
+.nota-history-ready { --status-dot: #0d7c73; background: var(--nota-tint); color: #075551; }
+.nota-history-delivered { --status-dot: #14693b; background: #e6f4eb; color: #14693b; }
+.nota-history-sync { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: #e6f4eb; color: #14693b; }
+.nota-history-sync .nota-icon { width: 20px; height: 20px; }
+.nota-history-pending { background: #fcecea; color: #be2c21; }
+
+@media (max-width: 850px) {
+  .nota-history-search { flex-wrap: wrap; }
+  .nota-history-search .nota-item-search { flex-basis: 100%; }
+}
+@media (max-width: 520px) {
+  .nota-heading.nota-history-heading { align-items: start; flex-direction: column; gap: 12px; }
+  .nota-page .nota-export { min-height: 48px; }
+  .nota-history-date { flex-wrap: wrap; }
+  .nota-history-table th, .nota-history-table td { padding-inline: 15px; }
+}
+
+
+.nota-maintenance { max-width: 1375px; margin-inline: auto; }
+.nota-backup-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 25px; }
+.nota-backup-card { display: flex; flex-direction: column; align-items: stretch; padding: 30px; }
+.nota-maintenance-icon { display: grid; place-items: center; flex: 0 0 auto; width: 70px; height: 70px; border-radius: 20px; background: var(--nota-tint); color: var(--nota-accent); }
+.nota-maintenance-icon .nota-icon { width: 34px; height: 34px; }
+.nota-restore-icon { background: #f2f4f1; color: var(--nota-ink); }
+.nota-backup-card h2 { margin: 22px 0 7px; font-size: 26px; }
+.nota-backup-card p { color: var(--nota-muted); margin-bottom: 20px; }
+.nota-last-backup { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 12px 20px; border-radius: 15px; background: #f2f4f1; }
+.nota-last-backup .nota-icon { color: #14693b; }
+.nota-backup-counts, .nota-sync-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.nota-backup-counts { gap: 10px; margin-block: 20px; text-align: center; }
+.nota-backup-counts > div { display: flex; flex-direction: column-reverse; align-items: center; border: 1px solid var(--nota-line); border-radius: 15px; padding: 12px 5px; }
+.nota-backup-counts dt, .nota-sync-counts dt { color: var(--nota-muted); }
+.nota-backup-counts dd { font-size: 32px; font-weight: 750; }
+.nota-file-button { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 70px; margin-top: auto; padding: 10px 18px; border: 1px solid var(--nota-line); border-radius: 15px; font-size: 23px; font-weight: 600; cursor: pointer; }
+.nota-file-button input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.nota-file-button:focus-within { outline: 3px solid #b47a1c; outline-offset: 3px; }
+.nota-file-button:hover { background: #f5faf9; }
+.nota-backup-error { color: #a12e21; }
+
+.nota-page .nota-sync-button:disabled { opacity: 1; color: #475551; background: #c7d0cc; }
+.nota-sync-banner { display: flex; align-items: center; gap: 15px; min-height: 62px; padding: 12px 20px; border: 1px solid currentColor; border-radius: 20px; font-weight: 600; }
+.nota-sync-counts { gap: 15px; margin-top: 25px; }
+.nota-sync-counts > div { display: flex; align-items: center; gap: 20px; min-height: 117px; padding: 15px 25px; }
+.nota-sync-counts > div > div { display: flex; flex-direction: column-reverse; }
+.nota-sync-counts dd { font-size: 36px; line-height: 1.05; font-weight: 750; }
+.nota-sync-counts .nota-maintenance-icon { width: 55px; height: 55px; border-radius: 15px; }
+.nota-sync-counts .nota-icon { width: 28px; height: 28px; }
+.nota-sync-pending { color: #814500; background: #fff2da; }
+.nota-sync-failed { color: #be2c21; background: #fcecea; }
+.nota-sync-success { color: #14693b; background: #e6f4eb; }
+.nota-sync-banner.nota-sync-success { border-color: #a3d8b4; }
+.nota-sync-banner.nota-sync-pending { border-color: #edce92; }
+.nota-sync-filters { margin-block: 25px; }
+.nota-sync-list { list-style: none; padding: 0; margin: 0; }
+.nota-sync-list li { display: flex; align-items: center; justify-content: space-between; gap: 15px; min-height: 102px; padding: 20px 25px; }
+.nota-sync-list li + li { border-top: 1px solid var(--nota-line); }
+.nota-sync-list p { color: var(--nota-muted); margin-top: 3px; }
+.nota-sync-list code { font-family: Consolas, monospace; }
+.nota-sync-badge { display: flex; align-items: center; gap: 7px; border-radius: 24px; padding: 6px 15px; font-size: 18px; font-weight: 600; }
+.nota-sync-badge .nota-icon { width: 19px; height: 19px; }
+
+@media (max-width: 1080px) {
+  .nota-backup-grid { grid-template-columns: 1fr; }
+  .nota-sync-counts > div { gap: 10px; padding-inline: 10px; }
+}
+@media (max-width: 520px) {
+  .nota-backup-card { padding: 18px; }
+  .nota-sync-counts { gap: 7px; }
+  .nota-sync-counts > div { align-items: start; flex-direction: column; font-size: 16px; }
+  .nota-sync-list li { padding: 15px; flex-wrap: wrap; }
+}
+
+.nota-products-info { display: flex; align-items: center; gap: 15px; padding: 15px 20px; min-height: 62px; border: 1px solid #9edbd0; border-radius: 20px; background: #eef8f6; color: #075551; margin-bottom: 25px; }
+.nota-products-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 15px; margin-bottom: 25px; }
+.nota-products-tools .nota-item-search { flex: 1 1 220px; min-height: 62px; min-width: 0; }
+.nota-products-tools input { font-size: inherit; min-width: 0; }
+.nota-products-tools .nota-categories { margin: 0; padding: 0; }
+.nota-products-table :is(th, td):nth-child(3) { text-align: right; }
+.nota-products-table :is(th, td):nth-child(4) { text-align: left; }
+.nota-products-table td:nth-child(3) { font-size: 24px; }
+.nota-products-table td:nth-child(4) { font-size: inherit; }
+.nota-products-table tbody th { width: 30%; color: var(--nota-ink); font: inherit; font-weight: 700; }
+.nota-product-name, .nota-product-actions { display: flex; align-items: center; gap: 15px; }
+.nota-product-actions { justify-content: end; }
+.nota-products-table td:nth-child(2) { color: var(--nota-muted); }
+.nota-product-stock { display: inline-block; border-radius: 24px; padding: 6px 15px; background: #f2f4f1; font-weight: 600; }
+.nota-product-stock.nota-sync-pending { background: #fff2da; }
+.nota-page .nota-product-actions .nota-delete { color: #b3291e; }
+.nota-item-oil { background: #fbf4d9; color: #876a0f; }
+.nota-product-form { padding: 20px; margin-bottom: 20px; }
+.nota-product-form > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 155px), 1fr)); gap: 12px; margin-block: 14px; }
+.nota-product-form label { display: grid; gap: 4px; min-width: 0; }
+.nota-product-form select { width: 100%; padding: 12px; border: 1px solid #c4cfca; border-radius: 15px; color: inherit; background: white; font: inherit; }
+.nota-product-form footer { display: flex; gap: 10px; justify-content: end; margin-top: 12px; }
+
+.nota-customer-layout { display: grid; grid-template-columns: minmax(250px, 35%) minmax(0, 1fr); gap: 25px; }
+.nota-customer-list, .nota-customer-detail { display: grid; gap: 10px; align-content: start; }
+.nota-customer-list input { min-height: 62px; margin-bottom: 5px; }
+.nota-page .nota-customer-list button { display: flex; align-items: center; gap: 15px; min-height: 102px; text-align: left; padding: 15px 20px; border-radius: 20px; }
+.nota-page .nota-customer-list button[aria-pressed="true"] { border-color: var(--nota-accent); background: var(--nota-tint); }
+.nota-customer-list button > span:last-child { display: grid; }
+.nota-customer-profile { padding: 25px; }
+.nota-customer-profile h2 { font-size: 32px; }
+.nota-customer-profile > p { font-size: 24px; }
+.nota-customer-contact { display: flex; flex-wrap: wrap; gap: 24px; margin-block: 17px 25px; }
+.nota-customer-contact span { display: inline-flex; gap: 8px; align-items: center; }
+.nota-customer-contact .nota-icon { width: 19px; height: 19px; }
+.nota-customer-profile dl { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; border-top: 1px solid var(--nota-line); padding-top: 20px; margin-block: 0 25px; }
+.nota-customer-profile dt { color: var(--nota-muted); }
+.nota-customer-profile dd { font-size: 27px; font-weight: 700; }
+.nota-page .nota-customer-profile button { min-height: 70px; padding-inline: 28px; font-size: 23px; }
+.nota-customer-detail > h2 { margin-block: 22px 12px; }
+.nota-customer-order { padding: 20px; margin-bottom: 5px; }
+.nota-customer-order > :is(header, div) { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.nota-customer-order header > strong { font-size: 24px; }
+.nota-customer-order > div { margin-top: 8px; }
+.nota-customer-order > div > div { flex: 1 1 230px; }
+.nota-page .nota-customer-order button:disabled { opacity: .55; }
+.nota-customer-dialog { width: min(640px, calc(100% - 28px)); max-height: calc(100dvh - 28px); border: 0; border-radius: 20px; padding: 0; color: var(--nota-ink); }
+.nota-customer-dialog::backdrop { background: #17232166; }
+.nota-customer-dialog header, .nota-customer-dialog footer { display: flex; align-items: center; gap: 10px; padding: 20px 25px; }
+.nota-customer-dialog header { justify-content: space-between; border-bottom: 1px solid var(--nota-line); }
+.nota-customer-dialog header h2 { font-size: 26px; }
+.nota-page .nota-customer-dialog header button { border: 0; line-height: 1; font-size: 27px; }
+.nota-customer-fields { display: grid; gap: 19px; padding: 24px 25px; }
+.nota-customer-fields label { display: grid; gap: 7px; font-weight: 600; }
+.nota-customer-fields input { min-height: 62px; font-weight: 400; }
+.nota-customer-dialog footer { border-top: 1px solid var(--nota-line); }
+.nota-customer-dialog footer button { flex: 1; min-height: 60px; font-weight: 700; }
+
+@media (max-width: 950px) {
+  .nota-customer-layout { grid-template-columns: 1fr; }
+}
+
+.nota-page .nota-history-open { color: inherit; font-weight: 700; text-align: left; border: 0; background: transparent; padding: 0; }
+.nota-page .nota-history-open:hover:not(:disabled) { background: transparent; }
+.nota-history-row { cursor: pointer; }
+.nota-history-row:hover, .nota-history-row:focus-within { background: #f3f5f2; }
+.nota-detail-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 26%); gap: clamp(24px, 2.6vw, 50px); align-items: start; }
+.nota-detail-content { display: grid; gap: 20px; }
+.nota-detail-content > .nota-text-button { justify-self: start; }
+.nota-detail-banner { margin: 0; align-items: start; }
+.nota-detail-banner p { color: var(--nota-muted); }
+.nota-detail-summary { padding: 25px; }
+.nota-detail-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; flex-wrap: wrap; }
+.nota-detail-top h1 { font-size: 32px; line-height: 1.25; margin-block: 3px; }
+.nota-detail-badges { display: flex; gap: 10px; flex-wrap: wrap; }
+.nota-detail-counts { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; border-top: 1px solid var(--nota-line); margin-block: 25px 15px; padding-top: 25px; }
+.nota-detail-counts dt, .nota-detail-total > span { color: var(--nota-muted); }
+.nota-detail-counts dd { font-size: 26px; font-weight: 700; }
+.nota-detail-total { display: grid; }
+.nota-detail-total > strong { font-size: clamp(32px, 3vw, 48px); line-height: 1.2; }
+.nota-detail-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+.nota-detail-status { padding: 20px; }
+.nota-detail-status > div { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.nota-slip { margin: 9px 0 0; text-align: center; }
+.nota-slip pre {
+  position: relative; width: min(100%, 342px); margin: 0 auto; padding: 20px 14px 32px;
+  border: 1px solid var(--nota-line); background: #fff; color: #161616;
+  text-align: left; font: 16px/1.42 Consolas, monospace; letter-spacing: normal; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.nota-slip pre::after { content: ''; position: absolute; inset: auto 0 0; height: 10px; background: linear-gradient(150deg, transparent 75%, #f3f5f2 75%) 0 0 / 34px 10px repeat-x, linear-gradient(210deg, transparent 75%, #f3f5f2 75%) 0 0 / 34px 10px repeat-x; }
+.nota-slip figcaption { margin-top: 13px; font-size: 19px; color: var(--nota-muted); }
+@media (max-width: 1050px) {
+  .nota-detail-layout { grid-template-columns: 1fr; }
+}
+
+@media print {
+  @page { margin: 0; }
+  body:has(.nota-slip) .nota-page { display: block; min-height: 0; background: white; }
+  body:has(.nota-slip) :is(.nota-sidebar, .nota-topbar, .nota-detail-content, .nota-slip figcaption) { display: none; }
+  body:has(.nota-slip) .nota-content { padding: 0; }
+  .nota-detail-layout { display: block; }
+  .nota-slip { width: 58mm; margin: 0; }
+  .nota-slip pre { width: 100%; border: 0; padding: 3mm; font-size: 8pt; }
+  .nota-slip pre::after { display: none; }
+}
+
+.nota-page .nota-menu-toggle, .nota-page .nota-cart-shortcut { display: none; }
+.nota-workspace, .nota-product-picker, .nota-customer-detail, .nota-backup-card { min-width: 0; }
+.nota-page input, .nota-page select { max-width: 100%; }
+.nota-customer-profile h2, .nota-detail-top h1, .nota-product-name, .nota-item-head h2 { overflow-wrap: anywhere; }
+
+@media screen and (min-width: 761px) and (max-width: 1199px) {
+  .nota-page { grid-template-columns: 174px minmax(0, 1fr); font-size: 18px; }
+  .nota-brand { gap: 10px; padding: 18px 12px; }
+  .nota-logo { width: 42px; height: 42px; }
+  .nota-brand small, .nota-date { font-size: 16px; }
+  .nota-sidebar nav, .nota-exit { margin-inline: 8px; }
+  .nota-sidebar nav > button, .nota-exit a { gap: 10px; min-height: 49px; padding: 8px 10px; }
+  .nota-sidebar nav .nota-icon, .nota-exit .nota-icon { width: 21px; height: 21px; }
+  .nota-exit { padding-inline: 0; }
+  .nota-topbar { min-height: 76px; }
+  .nota-content { padding-top: 30px; }
+  .nota-heading h1 { font-size: 36px; }
+}
+
+@media screen and (max-width: 1100px) {
+  .nota-history-table table { min-width: 680px; }
+  .nota-history-table :is(th, td) { padding-inline: 14px; }
+  .nota-product-actions { gap: 4px; }
+  .nota-page .nota-product-actions button { padding-inline: 8px; }
+}
+
+@media screen and (max-width: 950px) {
+  .nota-page .nota-cart-shortcut {
+    display: flex; position: sticky; bottom: max(8px, env(safe-area-inset-bottom)); z-index: 2;
+    align-items: center; justify-content: space-between; gap: 10px; min-height: 48px;
+    padding: 10px 16px; border-radius: 14px; background: var(--nota-accent); color: white;
+    font-weight: 700; box-shadow: 0 4px 16px #17232130;
+  }
+  .nota-order-layout:has(.nota-cart-shortcut) { gap: 14px; }
+  .nota-customer-bar, .nota-recipient { min-height: 0; }
+}
+
+@media screen and (max-width: 760px) {
+  .nota-page { --nota-gutter: clamp(12px, 4vw, 24px); font-size: 16px; }
+  .nota-sidebar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .nota-brand { gap: 10px; padding: 11px var(--nota-gutter); }
+  .nota-brand small, .nota-date { font-size: 14px; }
+  .nota-logo { width: 40px; height: 40px; border-radius: 12px; }
+  .nota-logo i { width: 14px; height: 20px; }
+  .nota-page .nota-menu-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-right: var(--nota-gutter); padding: 6px 12px; }
+  .nota-sidebar nav, .nota-sidebar .nota-exit { display: none; grid-column: 1 / -1; }
+  .nota-menu-expanded nav { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nota-menu-expanded .nota-exit { display: block; }
+  .nota-sidebar nav > button, .nota-exit a { min-height: 44px; }
+  .nota-count { min-width: 24px; height: 24px; font-size: 14px; }
+  .nota-topbar { min-height: 0; gap: 8px; padding-block: 10px; }
+  .nota-account { gap: 6px; font-size: 14px; }
+  .nota-online { padding: 5px 9px; margin: 0; gap: 5px; }
+  .nota-online .nota-icon { width: 16px; height: 16px; }
+  .nota-avatar { width: 30px; height: 30px; }
+  .nota-content { padding-bottom: 30px; }
+  .nota-heading { gap: 14px; margin-bottom: 18px; }
+  .nota-heading h1 { font-size: 32px; }
+  .nota-steps { gap: 6px; }
+  .nota-steps li { min-height: 48px; }
+  .nota-page :is(input, select) { font-size: 16px; }
+  .nota-page :is(.nota-tools input, .nota-tools button, .nota-item-search, .nota-customer-list input, .nota-history-date input) { min-height: 48px; }
+  .nota-page .nota-export, .nota-page .nota-wide-button { min-height: 48px; font-size: 17px; }
+  .nota-page .nota-categories button { min-height: 44px; padding-inline: 14px; }
+  .nota-page .nota-card { min-height: 102px; }
+  .nota-card-copy strong, .nota-item-head h2 { font-size: 19px; }
+  .nota-card-copy small, .nota-slip figcaption { font-size: 15px; }
+  .nota-item-card, .nota-customer-profile, .nota-detail-summary, .nota-save { padding: 16px; }
+  .nota-customer-list button { min-height: 76px; }
+  .nota-detail-top h1, .nota-customer-profile h2 { font-size: 26px; }
+  .nota-sync-filters { margin-block: 16px; }
+  .nota-order-header h2, .nota-recipient h2 { font-size: 21px; }
+  .nota-customer-dialog :is(header, footer, .nota-customer-fields) { padding: 14px 16px; }
+  .nota-customer-fields { gap: 12px; }
+  .nota-customer-fields input, .nota-customer-dialog footer button { min-height: 46px; }
+
+  .nota-history-table table { display: block; min-width: 0; }
+  .nota-history-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .nota-history-table tbody { display: block; }
+  .nota-history-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 14px; }
+  .nota-history-table tbody tr:first-child { border-top: 0; }
+  .nota-history-table tbody :is(th, td) { width: auto; min-width: 0; padding: 0; text-align: left; white-space: normal; }
+  .nota-history-table tbody :is(th, td):nth-child(n) { font-size: inherit; }
+  .nota-history-table tbody td small { font-size: 14px; }
+  .nota-history-table tbody td[colspan] { grid-column: 1 / -1; }
+  .nota-history-table:not(.nota-products-table) tbody td:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  .nota-history-table:not(.nota-products-table) tbody td:nth-child(6) { grid-column: 2; grid-row: 1; justify-self: end; }
+  .nota-history-table:not(.nota-products-table) tbody td:nth-child(4) { text-align: right; }
+  .nota-history-status { padding: 4px 10px; font-size: 14px; }
+  .nota-history-sync { width: 30px; height: 30px; }
+  .nota-products-table tbody th, .nota-products-table tbody td:last-child { grid-column: 1 / -1; }
+  .nota-products-table tbody td:nth-child(2) { display: none; }
+  .nota-products-table tbody td:nth-child(4) { justify-self: end; }
+  .nota-product-name .nota-item-icon { width: 40px; height: 40px; }
+  .nota-page .nota-product-actions button { min-height: 44px; }
+}
+
+@media screen and (max-width: 390px) {
+  .nota-account > strong { font-size: 13px; }
+  .nota-account .nota-avatar { display: none; }
+  .nota-page .nota-tools button, .nota-page .nota-export { white-space: normal; }
+  .nota-products-tools .nota-categories { flex-wrap: wrap; }
+  .nota-sync-counts > div { font-size: 14px; }
+}

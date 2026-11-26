@@ -17,7 +17,30 @@ Fondasi backend dan database telah tersedia untuk tahap berikutnya:
 - Harga dan total memakai `NUMERIC`; skema nota menyediakan snapshot produk/harga; perubahan stok dicatat secara immutable dan tidak dapat menghasilkan stok negatif.
 - Migration dan constraint database telah diverifikasi terhadap database `toko_indo_telur`; data uji selalu di-rollback.
 
-Product API untuk membaca, menambah, memperbarui, dan menghapus produk secara aman sudah tersedia. Endpoint transaksi, sinkronisasi frontend, chatbot, cetak, dan fitur offline **belum diimplementasikan**. Detail ERD, constraint, dan cara menjalankan database tersedia di [Database Schema](./docs/database-schema.md).
+Dashboard **Toko Indo Telur** memakai PostgreSQL untuk produk, pelanggan, nota, status pengantaran, dan stok. Riwayat mendukung filter, ekspor CSV, detail nota, serta cetak dan bagikan melalui browser. Penjualan menyimpan harga dan nama barang saat nota dibuat. Stok berkurang saat nota siap diantar atau langsung ditandai diantar, dan perubahannya masuk ke catatan stok. Detail skema ada di [Database Schema](./docs/database-schema.md).
+
+### Menjalankan dashboard lokal
+
+Setelah PostgreSQL berjalan dan `backend/.env` terisi, jalankan dari folder `backend`:
+
+```powershell
+npm.cmd ci
+npm.cmd run migrate
+npm.cmd run dev
+```
+
+Di terminal lain, dari folder `frontend`:
+
+```powershell
+npm.cmd ci
+npm.cmd run dev
+```
+
+Buka [Produk dan stok](http://localhost:5173/produk) atau [Nota baru](http://localhost:5173/nota-baru). Database baru dimulai kosong. Tambahkan produk beserta stok awal, lalu tambahkan pelanggan dari Nota baru.
+
+- Jika server terputus setelah halaman terbuka, nota dapat masuk antrean browser. Gunakan **Sinkronkan sekarang** untuk mengirim ulang. Server memeriksa stok dan harga saat menerima nota, serta mencegah nota ganda berdasarkan ID pengiriman.
+- Backup JSON mencakup produk, stok saat ini, pelanggan, dan nota yang sudah diterima server. Pemulihan menggunakan database kosong yang sudah dimigrasi. Riwayat pergerakan stok dari database sumber tetap berada di database sumber.
+- Untuk pengujian API dashboard, jalankan `npm.cmd run test:dashboard` dari `backend`. Uji memakai skema PostgreSQL terpisah dan menghapus skema uji setelah selesai.
 
 ## Latar belakang
 
@@ -76,7 +99,7 @@ Pilihan di bawah mengikuti Project Plan; komponen yang belum diputuskan **tidak 
 | Model AI | Model klasifikasi maksud pesan yang dilatih dari data yang diizinkan/dummy | Dalam perencanaan |
 | Gen AI | API model proprietary untuk menyusun saran balasan | Penyedia belum dipilih |
 | REST API AI | **FastAPI atau Flask** | Pilih salah satu saat implementasi |
-| Backend aplikasi | Node.js + Express untuk API produk, transaksi, sinkronisasi, dan chatbot | Product API tersedia; API transaksi, sinkronisasi, dan chatbot belum dibuat |
+| Backend aplikasi | Node.js + Express | API produk, pelanggan, nota, backup, dan pengiriman ulang nota tersedia di dashboard lokal |
 | Database online | PostgreSQL + `pg` untuk produk, stok, transaksi, dan sinkronisasi | Skema initial dan migration sudah diterapkan |
 | Penyimpanan offline | Penyimpanan lokal browser dan berkas cadangan | Implementasi teknis belum diputuskan |
 | Deployment | Hosting publik untuk web dan API | Penyedia/URL belum tersedia |
@@ -99,7 +122,7 @@ flowchart LR
     J[Data Science: data olahan & analisis] --> H
 ```
 
-Diagram ini adalah **rancangan arsitektur target**. Saat ini backend Express dan database PostgreSQL telah tersedia; web kasir, chatbot, API AI, sinkronisasi, dan integrasi WhatsApp belum diimplementasikan. Web kasir memerlukan akses internet pada penyiapan awal sesuai strategi caching yang nanti dipilih; chatbot, server, API generatif, dan sinkronisasi memerlukan internet.
+Diagram ini menunjukkan **rancangan arsitektur target**. Web kasir lokal memakai Express dan PostgreSQL. Nota yang dibuat saat koneksi ke backend terputus dapat dikirim ulang dari antrean browser ketika server kembali tersedia. Integrasi WhatsApp dan sinkronisasi lintas perangkat berada di luar dashboard lokal ini.
 
 ## Dokumentasi pengembangan
 

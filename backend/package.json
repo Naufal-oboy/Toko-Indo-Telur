@@ -9,7 +9,8 @@
     "start": "node src/server.js",
     "migrate": "node scripts/run-migrations.js",
     "db:verify": "node scripts/verify-database.js",
-    "test:products": "node scripts/test-product-api.js"
+    "test:products": "node scripts/test-product-api.js",
+    "test:dashboard": "node scripts/test-dashboard-api.js"
   },
   "keywords": [],
   "type": "module",
