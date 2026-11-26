@@ -105,7 +105,7 @@ Tracks the lifecycle of an offline submission. A record is identified by the dev
 4. The movement trigger locks each product row and refuses a change that would make stock negative. Direct updates to `products.stock` and edits/deletes of movement history are rejected.
 5. Deactivate (`is_active = false`) a product with history instead of deleting it. Foreign keys also prevent accidental deletion of referenced products.
 
-The migration does not create a sales API. When that API is added, it must use a single PostgreSQL transaction (`BEGIN` / `COMMIT`; `ROLLBACK` on any error) for receipt creation, receipt lines, stock movements, and the sync status update.
+Migration `002_dashboard.sql` adds customer records, product categories, customer snapshots, and fulfillment status. The dashboard API writes each receipt, its item snapshots, and its sync record in one PostgreSQL transaction. Submitting a ready receipt or finalizing a draft also writes a stock movement for each item. A receipt already marked ready does not deduct stock again when marked delivered.
 
 ## Idempotency and offline synchronization
 
