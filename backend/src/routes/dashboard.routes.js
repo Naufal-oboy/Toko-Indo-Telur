@@ -3,6 +3,7 @@ import { pool } from "../config/database.js";
 
 const router = Router();
 const statuses = ["draft", "ready", "delivered"];
+const paymentMethods = ["cash", "transfer"];
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 const dateFormat = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Makassar" });
 const timeFormat = new Intl.DateTimeFormat("id-ID", { timeZone: "Asia/Makassar", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
@@ -89,7 +90,7 @@ async function snapshot(client) {
       date: dateFormat.format(sale.transaction_date), time: timeFormat.format(sale.transaction_date).replace(":", "."),
       customer: sale.customer_snapshot ?? legacyCustomer, total: Number(sale.total_amount),
       status: sale.fulfillment_status, pending: sale.sync_status !== "processed",
-      paymentMethod: sale.payment_method, paymentStatus: sale.payment_status, notes: sale.notes,
+      paymentMethod: sale.payment_method, paymentStatus: sale.payment_status, paidAt: sale.paid_at, notes: sale.notes,
       quantities: sale.lines.reduce((quantities, line) => {
         quantities[line.key] = Number(((quantities[line.key] ?? 0) + line.quantity).toFixed(3));
         return quantities;
@@ -206,8 +207,8 @@ router.post("/receipts", async (req, res) => {
       if (Number(products.get(line.key).price) !== line.price) fail("Harga produk berubah. Periksa kembali nota.", 409);
     }
     const { rows: [sale] } = await client.query(`
-      INSERT INTO transactions (client_transaction_id, invoice_number, customer_id, customer_snapshot, fulfillment_status, payment_status, transaction_date)
-      VALUES ($1, 'NT-' || to_char(nextval('dashboard_invoice_seq'), 'FM000000000000'), $2,$3,$4,'unpaid',$5)
+      INSERT INTO transactions (client_transaction_id, invoice_number, customer_id, customer_snapshot, fulfillment_status, payment_method, payment_status, paid_at, transaction_date)
+      VALUES ($1, 'NT-' || to_char(nextval('dashboard_invoice_seq'), 'FM000000000000'), $2,$3,$4,NULL,'unpaid',NULL,$5)
       RETURNING id, invoice_number
     `, [clientId, buyerId, customer(buyer.rows[0]), status, transactionDate]);
     for (const line of lines) {
@@ -246,6 +247,35 @@ router.patch("/receipts/:number/status", async (req, res) => {
     await client.query("UPDATE transactions SET fulfillment_status=$2 WHERE id=$1", [sale.id, status]);
   });
   reply(res, { status });
+});
+
+router.patch("/receipts/:number/payment", async (req, res) => {
+  const { paymentMethod } = req.body;
+  if (!paymentMethods.includes(paymentMethod)) fail("Metode pembayaran tidak valid.");
+  const payment = await atomic(async (client) => {
+    const { rows: [sale] } = await client.query(`
+      SELECT id, invoice_number, fulfillment_status, payment_status
+      FROM transactions
+      WHERE invoice_number=$1
+      FOR UPDATE
+    `, [req.params.number]);
+    if (!sale) fail("Nota tidak ditemukan.", 404);
+    if (sale.fulfillment_status !== "delivered") fail("Pembayaran hanya dapat dicatat setelah nota diantar.", 409);
+    if (sale.payment_status !== "unpaid") fail("Pembayaran nota sudah tercatat.", 409);
+    const { rows: [updated] } = await client.query(`
+      UPDATE transactions
+      SET payment_method=$2, payment_status='paid', paid_at=NOW()
+      WHERE id=$1
+      RETURNING invoice_number, payment_method, payment_status, paid_at
+    `, [sale.id, paymentMethod]);
+    return {
+      number: updated.invoice_number,
+      paymentMethod: updated.payment_method,
+      paymentStatus: updated.payment_status,
+      paidAt: updated.paid_at,
+    };
+  });
+  reply(res, payment);
 });
 
 router.post("/backup", async (_req, res) => {
@@ -294,14 +324,19 @@ router.post("/restore", async (req, res) => {
       const customerId = receipt.customer.id ? customerIds.get(id(receipt.customer.id)) : null;
       if (receipt.customer.id && !customerId) fail("Pelanggan nota tidak ditemukan dalam backup.");
       const buyer = { id: customerId, name, owner, phone, area, initial: Array.from(name)[0].toLocaleUpperCase("id-ID") };
-      const paymentMethod = receipt.paymentMethod ?? "cash";
       const paymentStatus = receipt.paymentStatus ?? "unpaid";
-      if (!["cash","transfer"].includes(paymentMethod) || !["unpaid","paid","partial"].includes(paymentStatus)) fail("Pembayaran pada backup tidak valid.");
+      const suppliedPaymentMethod = receipt.paymentMethod;
+      const paymentMethod = paymentStatus === "unpaid" ? null : suppliedPaymentMethod;
+      const paidAt = receipt.paidAt ?? null;
+      if (!['unpaid', 'paid', 'partial'].includes(paymentStatus) ||
+          (suppliedPaymentMethod != null && !paymentMethods.includes(suppliedPaymentMethod)) ||
+          (paymentStatus !== 'unpaid' && !paymentMethods.includes(paymentMethod)) ||
+          (paidAt !== null && (typeof paidAt !== 'string' || !Number.isFinite(Date.parse(paidAt))))) fail("Pembayaran pada backup tidak valid.");
       const notes = receipt.notes == null ? null : text(receipt.notes, "Catatan", 100000);
       const { rows: [sale] } = await client.query(`
-        INSERT INTO transactions (client_transaction_id, invoice_number, customer_id, customer_snapshot, fulfillment_status, transaction_date, payment_method, payment_status, notes)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id
-      `, [receipt.clientId, number, customerId, buyer, receipt.status, receipt.createdAt, paymentMethod, paymentStatus, notes]);
+        INSERT INTO transactions (client_transaction_id, invoice_number, customer_id, customer_snapshot, fulfillment_status, transaction_date, payment_method, payment_status, paid_at, notes)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id
+      `, [receipt.clientId, number, customerId, buyer, receipt.status, receipt.createdAt, paymentMethod, paymentStatus, paidAt, notes]);
       for (const line of receipt.lines) {
         const key = productIds.get(id(line?.key));
         if (!key) fail("Produk nota tidak ditemukan dalam backup.");
