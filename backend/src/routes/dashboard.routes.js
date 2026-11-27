@@ -12,6 +12,37 @@ function fail(message, status = 400) {
   throw Object.assign(new Error(message), { status });
 }
 
+function restorePaymentState(receipt) {
+  const paymentStatus = receipt.paymentStatus ?? "unpaid";
+  const suppliedPaymentMethod = receipt.paymentMethod;
+  const paidAt = receipt.paidAt ?? null;
+
+  if (!['unpaid', 'paid', 'partial'].includes(paymentStatus)) {
+    fail("Status pembayaran pada backup tidak valid.");
+  }
+  if (suppliedPaymentMethod !== undefined && suppliedPaymentMethod !== null &&
+      !paymentMethods.includes(suppliedPaymentMethod)) {
+    fail("Metode pembayaran pada backup tidak valid.");
+  }
+  if (receipt.paidAt !== undefined && paidAt !== null &&
+      (typeof paidAt !== "string" || !Number.isFinite(Date.parse(paidAt)))) {
+    fail("Waktu pembayaran pada backup tidak valid.");
+  }
+
+  if (paymentStatus === "unpaid") {
+    if (paidAt !== null) fail("Nota unpaid pada backup tidak boleh memiliki waktu pembayaran.");
+    // Backup sebelum migration 003 can contain the old database default cash.
+    if (suppliedPaymentMethod === undefined || suppliedPaymentMethod === null || suppliedPaymentMethod === "cash") {
+      return { paymentStatus, paymentMethod: null, paidAt: null };
+    }
+    fail("Nota unpaid pada backup tidak boleh memiliki metode pembayaran.");
+  }
+  if (!paymentMethods.includes(suppliedPaymentMethod)) {
+    fail("Nota paid atau partial pada backup wajib memiliki metode pembayaran yang valid.");
+  }
+  return { paymentStatus, paymentMethod: suppliedPaymentMethod, paidAt };
+}
+
 function text(value, label, limit, required = false) {
   if (typeof value !== "string" || value.trim().length > limit || (required && !value.trim())) {
     fail(label + " tidak valid.");
@@ -254,14 +285,24 @@ router.patch("/receipts/:number/payment", async (req, res) => {
   if (!paymentMethods.includes(paymentMethod)) fail("Metode pembayaran tidak valid.");
   const payment = await atomic(async (client) => {
     const { rows: [sale] } = await client.query(`
-      SELECT id, invoice_number, fulfillment_status, payment_status
+      SELECT id, invoice_number, fulfillment_status, payment_status, payment_method, paid_at
       FROM transactions
       WHERE invoice_number=$1
       FOR UPDATE
     `, [req.params.number]);
     if (!sale) fail("Nota tidak ditemukan.", 404);
+    if (sale.payment_status === "paid") {
+      if (sale.payment_method !== paymentMethod) fail("Pembayaran nota sudah tercatat dengan metode berbeda.", 409);
+      return {
+        number: sale.invoice_number,
+        paymentMethod: sale.payment_method,
+        paymentStatus: sale.payment_status,
+        paidAt: sale.paid_at,
+      };
+    }
+    if (sale.payment_status === "partial") fail("Pembayaran partial tidak dapat diselesaikan otomatis.", 409);
+    if (sale.payment_status !== "unpaid") fail("Status pembayaran nota tidak dapat diubah.", 409);
     if (sale.fulfillment_status !== "delivered") fail("Pembayaran hanya dapat dicatat setelah nota diantar.", 409);
-    if (sale.payment_status !== "unpaid") fail("Pembayaran nota sudah tercatat.", 409);
     const { rows: [updated] } = await client.query(`
       UPDATE transactions
       SET payment_method=$2, payment_status='paid', paid_at=NOW()
@@ -292,6 +333,7 @@ router.post("/restore", async (req, res) => {
   const { version, items, customers, receipts } = req.body;
   if (version !== 2 || ![items, customers, receipts].every(Array.isArray) ||
       items.length > 10000 || customers.length > 10000 || receipts.length > 25000) fail("File backup tidak valid.");
+  const paymentStates = receipts.map(restorePaymentState);
   await atomic(async (client) => {
     await client.query("LOCK TABLE customers, products, transactions IN SHARE ROW EXCLUSIVE MODE");
     const { rows: [state] } = await client.query("SELECT EXISTS (SELECT FROM customers UNION ALL SELECT FROM products UNION ALL SELECT FROM transactions) AS occupied");
@@ -314,7 +356,7 @@ router.post("/restore", async (req, res) => {
       customerIds.set(key, saved.id);
     }
     let invoiceSequence = 0;
-    for (const receipt of receipts) {
+    for (const [index, receipt] of receipts.entries()) {
       if (!receipt || typeof receipt.clientId !== "string" || !uuid.test(receipt.clientId) ||
           !statuses.includes(receipt.status) || !Array.isArray(receipt.lines) || receipt.lines.length > 1000 ||
           typeof receipt.createdAt !== "string" || !Number.isFinite(Date.parse(receipt.createdAt))) fail("Nota backup tidak valid.");
@@ -324,14 +366,7 @@ router.post("/restore", async (req, res) => {
       const customerId = receipt.customer.id ? customerIds.get(id(receipt.customer.id)) : null;
       if (receipt.customer.id && !customerId) fail("Pelanggan nota tidak ditemukan dalam backup.");
       const buyer = { id: customerId, name, owner, phone, area, initial: Array.from(name)[0].toLocaleUpperCase("id-ID") };
-      const paymentStatus = receipt.paymentStatus ?? "unpaid";
-      const suppliedPaymentMethod = receipt.paymentMethod;
-      const paymentMethod = paymentStatus === "unpaid" ? null : suppliedPaymentMethod;
-      const paidAt = receipt.paidAt ?? null;
-      if (!['unpaid', 'paid', 'partial'].includes(paymentStatus) ||
-          (suppliedPaymentMethod != null && !paymentMethods.includes(suppliedPaymentMethod)) ||
-          (paymentStatus !== 'unpaid' && !paymentMethods.includes(paymentMethod)) ||
-          (paidAt !== null && (typeof paidAt !== 'string' || !Number.isFinite(Date.parse(paidAt))))) fail("Pembayaran pada backup tidak valid.");
+        const { paymentStatus, paymentMethod, paidAt } = paymentStates[index];
       const notes = receipt.notes == null ? null : text(receipt.notes, "Catatan", 100000);
       const { rows: [sale] } = await client.query(`
         INSERT INTO transactions (client_transaction_id, invoice_number, customer_id, customer_snapshot, fulfillment_status, transaction_date, payment_method, payment_status, paid_at, notes)

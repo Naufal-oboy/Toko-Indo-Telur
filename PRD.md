@@ -9,14 +9,14 @@
 | UMKM | Toko Indo Telur, grosir sembako di Bontang |
 | Judul use case | Kemudahan Pembuatan Nota Penjualan dan Penanganan Pesanan Pelanggan untuk Toko Indo Telur |
 | Jenis produk | MVP aplikasi kasir web (browser Android), layanan data/stok, dan chatbot WhatsApp nomor uji |
-| Status dokumen | **Dokumentasi Kebutuhan & Status Sinkronisasi Implementasi Aktual (26 November 2026)** |
+| Status dokumen | **Dokumentasi Kebutuhan & Status Sinkronisasi Implementasi Aktual (27 November 2026)** |
 | Horizon perencanaan | Empat minggu; tanggal kalender resmi belum ditetapkan dalam dokumen sumber |
 | Sasaran validasi | Pemilik UMKM mencoba alur nota, printer, pemulihan data, dan chatbot; memberi feedback |
 
 > **Status perubahan scope:** Pengaturan stok otomatis, sinkronisasi data server, chatbot pertanyaan harga/stok, dan ekspor CSV **dipertahankan sebagai fitur rencana tim** karena tercantum dalam Project Plan. Keempatnya merupakan perluasan dari use case awal yang masih harus dikonfirmasi kepada PIC UMKM dan Tim Asah. Tidak ada fitur lama yang dihapus dari PRD ini.
 
-> **Status implementasi per 26 November 2026 (Diperbarui):**
-> - **Backend & Database:** Telah menerapkan migration `001_initial_schema.sql` dan `002_dashboard.sql` mencakup tabel `products`, `transactions`, `transaction_items`, `stock_movements`, `sync_records`, `customers`, dan `dashboard_settings`. Endpoint health, Product API (`/api/products`), dan Dashboard API (`/api/dashboard`) telah diverifikasi melalui skrip pengujian integrasi otomatis.
+> **Status implementasi per 27 November 2026 (Diperbarui):**
+> - **Backend & Database:** Telah menerapkan migration `001_initial_schema.sql`, `002_dashboard.sql`, dan `003_payment_workflow.sql`, mencakup tabel `products`, `transactions`, `transaction_items`, `stock_movements`, `sync_records`, `customers`, serta `dashboard_settings`. Dashboard API mencatat pembayaran `cash` atau `transfer` pada receipt yang sudah `delivered`; retry metode sama idempoten dan mempertahankan `paid_at`.
 > - **Frontend:** Telah mengimplementasikan pembuatan nota 3-langkah, katalog produk/stok, riwayat nota terfilter, ekspor CSV, manajemen pelanggan, backup/restore JSON, dan layout cetak struk 58 mm.
 > - **Offline & Sync:** Saat ini berstatus **Partially Implemented**, berupa antrean transaksi lokal di `localStorage` ketika server tidak terjangkau (bukan arsitektur offline-first penuh).
 > - **AI Service:** Telah mengimplementasikan REST API FastAPI (`/ai/health`, `/ai/predict-intent`, `/ai/suggest-reply`, `/ai/chatbot/respond`), model intent klasifikasi `tfidf_linear_svc`, toleransi typo RapidFuzz, dan generative reply Google Gemini API dengan factuality guard & fallback.
@@ -124,6 +124,7 @@ Seluruh butir di bawah merupakan **target**, bukan pernyataan fitur sudah selesa
 | FR-15 | Website web publik | Wajib (Main Quest, FS) | **Planned** | Belum ada URL hosting publik yang terverifikasi untuk demonstrasi online. |
 | FR-16 | Berbagi nota digital gambar/PDF | Wajib (Use Case) | **Partially Implemented** | Fitur berbagi nota saat ini menggunakan Web Share API (`navigator.share`) dengan teks ringkasan nota, atau fallback salin clipboard dan unduh file `.txt`. Belum mengimplementasikan ekspor format gambar (PNG/JPG) atau PDF. |
 | FR-17 | Ekspor riwayat nota CSV | Tambahan (Proyek) | **Implemented** | Tombol "Ekspor CSV" pada menu riwayat nota menghasilkan file `riwayat-nota.csv` yang dapat dibuka di Microsoft Excel atau Google Sheets. |
+| FR-18 | Pencatatan pembayaran receipt | Tambahan (Proyek) | **Implemented** | `PATCH /api/dashboard/receipts/:number/payment` menerima `cash` atau `transfer` hanya setelah receipt `delivered`. Pembayaran ulang dengan metode sama idempoten; metode berbeda dan status `partial` ditolak. |
 
 **Kelengkapan:** FR-01 s.d. FR-17 mencakup seluruh fitur kasir, stok, server, chatbot, operasional uji/demo, berbagi nota, dan CSV dari Project Plan terbaru. Persyaratan DS/AI dijabarkan terpisah pada §8 agar tidak tertukar dengan fungsi aplikasi pelanggan.
 
@@ -184,6 +185,8 @@ Seluruh butir di bawah merupakan **target**, bukan pernyataan fitur sudah selesa
 | BR-08 | Bot membaca harga/stok hanya melalui backend dan tidak mengubah keduanya | Pembatasan peran chatbot |
 | BR-09 | Data pelanggan nyata dan isi chat asli tidak digunakan dalam pengembangan tanpa izin eksplisit | Privasi UMKM dan pelanggan |
 | BR-10 | Fallback cetak berupa aplikasi pendamping atau berkas gambar/PDF | Kompatibilitas Bluetooth Android tidak dijamin |
+| BR-11 | Pembayaran hanya dapat dicatat untuk receipt `delivered` dan `unpaid`; metode yang didukung adalah `cash` dan `transfer` | Mencegah perubahan state pembayaran sebelum barang diantar |
+| BR-12 | Retry pembayaran dengan metode yang sama mengembalikan hasil yang sudah tercatat tanpa mengubah metode atau `paid_at`; metode berbeda ditolak | Menjamin retry jaringan tidak mengubah catatan pembayaran |
 
 ## 8. Persyaratan Data Science dan Gen AI (Main Quest)
 
@@ -245,7 +248,7 @@ Seluruh butir di bawah merupakan **target**, bukan pernyataan fitur sudah selesa
 | Entitas | Field utama | Catatan |
 | --- | --- | --- |
 | `products` | id, sku, name, description, price, stock, unit, is_active | Harga saat ini; soft delete memakai `is_active`. |
-| `transactions` | id, client_transaction_id, invoice_number, transaction_date, total_amount, payment_method, payment_status | UUID perangkat dan nomor nota unik. |
+| `transactions` | id, client_transaction_id, invoice_number, transaction_date, total_amount, payment_method, payment_status, paid_at | UUID perangkat dan nomor nota unik; payment method nullable untuk receipt `unpaid`. |
 | `transaction_items` | transaction_id, product_id, product_name_snapshot, unit_snapshot, quantity, unit_price, subtotal | Snapshot memastikan nota lama tidak berubah. |
 | `stock_movements` | product_id, transaction_id, movement_type, quantity_change, stock_before, stock_after | Audit immutable; trigger mengubah stok secara atomik dan mencegah nilai negatif. |
 | `sync_records` | client_transaction_id, device_id, server_transaction_id, status, error_message | Gate idempotency untuk retry transaksi offline. |
@@ -272,6 +275,7 @@ Skema ini adalah baseline implementasi untuk MVP. Perubahan kompatibel ditambahk
 | Nonaktifkan produk | `DELETE /api/dashboard/products/:id` | **Implemented** | Soft delete produk dashboard (`is_active = false`). |
 | Simpan nota | `POST /api/dashboard/receipts` | **Implemented** | Menyimpan nota (`draft`/`ready`), snapshot item, potong stok jika `ready`, dan catat `sync_records`. |
 | Ubah status nota | `PATCH /api/dashboard/receipts/:number/status` | **Implemented** | Mengubah status nota (`ready`, `delivered`); memotong stok jika beralih dari `draft` ke `ready`. |
+| Catat pembayaran | `PATCH /api/dashboard/receipts/:number/payment` | **Implemented** | Mencatat `cash` atau `transfer` untuk nota `delivered` dan `unpaid`. Request ulang dengan metode yang sama idempoten dan mempertahankan `paid_at`; metode berbeda atau receipt `partial` ditolak. |
 | Backup database | `POST /api/dashboard/backup` | **Implemented** | Mengunduh cadangan JSON v2 (items, customers, receipts, settings). |
 | Restore database | `POST /api/dashboard/restore` | **Implemented** | Memulihkan data cadangan JSON v2 ke database kosong yang sudah dimigrasi. |
 
