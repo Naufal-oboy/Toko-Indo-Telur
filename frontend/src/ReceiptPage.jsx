@@ -253,6 +253,7 @@ export default function ReceiptPage({ initialView = 'new' }) {
   const [queue, setQueue] = useState(readReceiptQueue)
   const queueRef = useRef(queue)
   const [receiptNumber, setReceiptNumber] = useState(null)
+  const [editingDraft, setEditingDraft] = useState(null)
   const [lastBackup, setLastBackup] = useState('')
   const [lastSync, setLastSync] = useState('')
   const [loading, setLoading] = useState(true)
@@ -339,6 +340,7 @@ export default function ReceiptPage({ initialView = 'new' }) {
 
   function openView(nextView) {
     setReceiptNumber(null)
+    setEditingDraft(null)
     setView(nextView)
     setQuery('')
     setAdding(false)
@@ -366,6 +368,26 @@ export default function ReceiptPage({ initialView = 'new' }) {
     window.scrollTo(0, 0)
   }
 
+  function openHistoryReceipt(number) {
+    const receipt = receipts.find((entry) => entry.number === number)
+    if (receipt?.status !== 'draft') {
+      showReceipt(number)
+      return
+    }
+
+    openView('new')
+    chooseCustomer(receipt.customer)
+    setEditingDraft(receipt)
+    setSaveAs('draft')
+    setQuantities(receipt.quantities ?? {})
+    const unavailable = Object.entries(receipt.quantities ?? {}).some(([key, quantity]) =>
+      quantity > 0 && !availableItems.some((item) => itemKey(item) === key),
+    )
+    if (receipt.local) setNotice('Sinkronkan draft ini sebelum menyimpan perubahan.')
+    else setNotice('Melanjutkan draft ' + number + '. Harga mengikuti katalog saat ini.' +
+      (unavailable ? ' Barang yang sudah tidak aktif tidak ditampilkan.' : ''))
+  }
+
   async function addCustomer(event) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
@@ -384,9 +406,20 @@ export default function ReceiptPage({ initialView = 'new' }) {
 
   async function saveReceipt() {
     await mutate(async () => {
-      const clientId = crypto.randomUUID()
       const lines = selectedItems.map(({ key, name, unit, quantity, price }) => ({ key, name, unit, quantity, price }))
-      const payload = { clientId, customerId: customer.id, status: saveAs, createdAt: new Date().toISOString(), items: lines.map(({ key, quantity, price }) => ({ key, quantity, price })) }
+      const items = lines.map(({ key, quantity, price }) => ({ key, quantity, price }))
+      if (editingDraft) {
+        if (editingDraft.local) throw new Error('Sinkronkan draft ini sebelum menyimpan perubahan.')
+        const saved = await dashboardRequest('/receipts/' + encodeURIComponent(editingDraft.number) + '/draft', 'PUT', { status: saveAs, items })
+        await refresh()
+        openView('history')
+        if (saveAs === 'ready') showReceipt(saved.number)
+        setNotice('Nota ' + saved.number + ' diperbarui.')
+        return
+      }
+
+      const clientId = crypto.randomUUID()
+      const payload = { clientId, customerId: customer.id, status: saveAs, createdAt: new Date().toISOString(), items }
       const receipt = { number: 'Lokal-' + clientId.slice(0, 8), date: historyDate(), time: formatTime(new Date()), customer, total, status: saveAs, quantities, lines, pending: true, local: true }
       updateQueue([...queue, { payload, receipt }])
       let message
@@ -532,7 +565,7 @@ export default function ReceiptPage({ initialView = 'new' }) {
                 <div className="nota-order-panel nota-customer-bar">
                   <Icon name="shop" />
                   <div><strong>{customer.name}</strong><div className="nota-muted">{customer.address || customer.area}</div></div>
-                  <button className="nota-text-button" onClick={() => { setStep(0); setQuery(''); window.scrollTo(0, 0) }}>Ganti</button>
+                  {!editingDraft && <button className="nota-text-button" onClick={() => { setStep(0); setQuery(''); window.scrollTo(0, 0) }}>Ganti</button>}
                 </div>
                 <label className="nota-item-search"><Icon name="search" /><input type="search" aria-label="Cari barang" placeholder="Cari barang, misal: telur" value={itemQuery} onChange={(event) => setItemQuery(event.target.value)} /></label>
                 <div className="nota-categories" role="group" aria-label="Kategori barang">
@@ -579,13 +612,13 @@ export default function ReceiptPage({ initialView = 'new' }) {
                   <label><input type="radio" name="nota-status" value="draft" checked={saveAs === 'draft'} onChange={() => setSaveAs('draft')} /><span><strong>Draft</strong><small>Belum final. Stok belum berkurang.</small></span></label>
                 </fieldset>
                 <Total total={total} />
-                <button className="nota-primary nota-wide-button" disabled={busy || !selectedItems.length}>{busy ? 'Menyimpan…' : 'Simpan nota'}</button>
+                <button className="nota-primary nota-wide-button" disabled={busy || !selectedItems.length || editingDraft?.local}>{busy ? 'Menyimpan…' : 'Simpan nota'}</button>
               </form>
             </div>
           )}
 
           {view === 'history' && <>
-            <div hidden={Boolean(activeReceipt)}><ReceiptHistory receipts={receipts} openReceipt={showReceipt} /></div>
+            <div hidden={Boolean(activeReceipt)}><ReceiptHistory receipts={receipts} openReceipt={openHistoryReceipt} /></div>
             {activeReceipt && <ReceiptDetail key={activeReceipt.number} receipt={activeReceipt} items={items}
               back={() => { setReceiptNumber(null); setOperationError(''); window.scrollTo(0, 0) }} updateStatus={updateReceiptStatus} busy={busy} />}
           </>}

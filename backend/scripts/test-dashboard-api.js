@@ -74,12 +74,26 @@ try {
   await request("/receipts/TIDAK-ADA/payment", "PATCH", { paymentMethod: "cash" }, 404);
   await request("/receipts/" + first.number + "/payment", "PATCH", { paymentMethod: "cash" }, 409);
 
+  const draftPath = "/receipts/" + first.number + "/draft";
+  const editedItems = [{ ...draft.items[0], quantity: 1 }];
+  const edited = await request(draftPath, "PUT", { status: "draft", items: editedItems });
+  assert.equal(edited.number, first.number);
+  data = await request();
+  assert.equal(data.receipts.length, 2);
+  assert.equal(data.items[0].stock, 5);
+  assert.equal(data.receipts.find((receipt) => receipt.number === first.number).total, values.price);
+  await request(draftPath, "PUT", { status: "ready", items: [{ ...editedItems[0], quantity: 6 }] }, 409);
+  data = await request();
+  assert.equal(data.receipts.find((receipt) => receipt.number === first.number).lines[0].quantity, 1);
+  await request(draftPath, "PUT", { status: "draft", items: draft.items });
+
   await request("/products/" + product.key, "PUT", { ...values, price: 60000, expectedStock: 5 });
   await Promise.all([
     request("/receipts/" + first.number + "/status", "PATCH", { status: "ready" }),
     request("/receipts/" + first.number + "/status", "PATCH", { status: "ready" }),
   ]);
   await request("/receipts/" + first.number + "/status", "PATCH", { status: "delivered" });
+  await request(draftPath, "PUT", { status: "draft", items: editedItems }, 409);
   await request("/receipts/" + first.number + "/payment", "PATCH", { paymentMethod: "card" }, 400);
   const payment = await request("/receipts/" + first.number + "/payment", "PATCH", { paymentMethod: "transfer" });
   assert.equal(payment.number, first.number);

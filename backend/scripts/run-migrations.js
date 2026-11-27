@@ -12,6 +12,18 @@ const migrationsDirectory = path.join(
 );
 const migrationLockId = 26012026;
 
+function hashSql(sql) {
+  return createHash("sha256").update(sql).digest("hex");
+}
+
+function matchesMigrationChecksum(checksum, sql) {
+  // Older runners hashed the checkout as-is. Git may convert every line to
+  // CRLF, and Windows PowerShell can append just the final CRLF to an LF file.
+  return checksum === hashSql(sql) ||
+    checksum === hashSql(sql.replace(/\n/g, "\r\n")) ||
+    (sql.endsWith("\n") && checksum === hashSql(sql.slice(0, -1) + "\r\n"));
+}
+
 async function getMigrationFiles() {
   const entries = await readdir(migrationsDirectory, { withFileTypes: true });
 
@@ -40,15 +52,17 @@ async function runMigrations() {
     const files = await getMigrationFiles();
 
     for (const filename of files) {
-      const sql = await readFile(path.join(migrationsDirectory, filename), "utf8");
-      const checksum = createHash("sha256").update(sql).digest("hex");
+      const source = await readFile(path.join(migrationsDirectory, filename), "utf8");
+      const sql = source.replace(/\r\n/g, "\n");
+      const checksum = hashSql(sql);
       const existing = await client.query(
         "SELECT checksum FROM schema_migrations WHERE filename = $1",
         [filename],
       );
 
       if (existing.rowCount > 0) {
-        if (existing.rows[0].checksum !== checksum) {
+        if (existing.rows[0].checksum !== hashSql(source) &&
+            !matchesMigrationChecksum(existing.rows[0].checksum, sql)) {
           throw new Error(
             `Migration ${filename} sudah tercatat tetapi isi filenya berubah. Buat migration baru, jangan ubah migration yang telah dijalankan.`,
           );

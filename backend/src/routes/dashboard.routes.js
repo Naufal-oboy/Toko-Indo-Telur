@@ -213,15 +213,39 @@ async function recordSale(client, saleId, lines) {
   }
 }
 
-router.post("/receipts", async (req, res) => {
-  const { clientId, customerId, status, items, createdAt, deviceId = "web" } = req.body;
-  if (typeof clientId !== "string" || !uuid.test(clientId) || !["draft", "ready"].includes(status)) fail("Identitas atau status nota tidak valid.");
+function receiptLines(items) {
   if (!Array.isArray(items) || !items.length || items.length > 200) fail("Isi barang nota tidak valid.");
   const lines = items.map((line) => {
     if (!line || typeof line !== "object") fail("Barang tidak valid.");
     return { key: id(line.key), quantity: decimal(line.quantity, 3, 99999999999.999, 0.001), price: decimal(line.price, 2, 999999999999.99) };
   });
   if (new Set(lines.map((line) => line.key)).size !== lines.length) fail("Produk ganda dalam satu nota.");
+  return lines;
+}
+
+async function lockReceiptProducts(client, lines) {
+  const products = await lockProducts(client, lines.map((line) => line.key));
+  checkStock(products, lines);
+  for (const line of lines) {
+    if (Number(products.get(line.key).price) !== line.price) fail("Harga produk berubah. Periksa kembali nota.", 409);
+  }
+  return products;
+}
+
+async function writeReceiptLines(client, saleId, lines, products) {
+  for (const line of lines) {
+    const row = products.get(line.key);
+    await client.query(`
+      INSERT INTO transaction_items (transaction_id, product_id, product_name_snapshot, unit_snapshot, quantity, unit_price)
+      VALUES ($1,$2,$3,$4,$5,$6)
+    `, [saleId, line.key, row.name, row.unit, line.quantity, row.price]);
+  }
+}
+
+router.post("/receipts", async (req, res) => {
+  const { clientId, customerId, status, items, createdAt, deviceId = "web" } = req.body;
+  if (typeof clientId !== "string" || !uuid.test(clientId) || !["draft", "ready"].includes(status)) fail("Identitas atau status nota tidak valid.");
+  const lines = receiptLines(items);
   const buyerId = id(customerId);
   const device = text(deviceId, "Perangkat", 128, true);
   const transactionDate = createdAt === undefined ? new Date() : new Date(typeof createdAt === "string" ? createdAt : NaN);
@@ -232,23 +256,13 @@ router.post("/receipts", async (req, res) => {
     if (existing.rowCount) return { number: existing.rows[0].invoice_number };
     const buyer = await client.query("SELECT * FROM customers WHERE id=$1 FOR KEY SHARE", [buyerId]);
     if (!buyer.rowCount) fail("Pelanggan tidak ditemukan.", 404);
-    const products = await lockProducts(client, lines.map((line) => line.key));
-    checkStock(products, lines);
-    for (const line of lines) {
-      if (Number(products.get(line.key).price) !== line.price) fail("Harga produk berubah. Periksa kembali nota.", 409);
-    }
+    const products = await lockReceiptProducts(client, lines);
     const { rows: [sale] } = await client.query(`
       INSERT INTO transactions (client_transaction_id, invoice_number, customer_id, customer_snapshot, fulfillment_status, payment_method, payment_status, paid_at, transaction_date)
       VALUES ($1, 'NT-' || to_char(nextval('dashboard_invoice_seq'), 'FM000000000000'), $2,$3,$4,NULL,'unpaid',NULL,$5)
       RETURNING id, invoice_number
     `, [clientId, buyerId, customer(buyer.rows[0]), status, transactionDate]);
-    for (const line of lines) {
-      const row = products.get(line.key);
-      await client.query(`
-        INSERT INTO transaction_items (transaction_id, product_id, product_name_snapshot, unit_snapshot, quantity, unit_price)
-        VALUES ($1,$2,$3,$4,$5,$6)
-      `, [sale.id, line.key, row.name, row.unit, line.quantity, row.price]);
-    }
+    await writeReceiptLines(client, sale.id, lines, products);
     if (status === "ready") await recordSale(client, sale.id, lines);
     await client.query(`
       INSERT INTO sync_records (client_transaction_id, device_id, server_transaction_id, status, processed_at)
@@ -258,6 +272,27 @@ router.post("/receipts", async (req, res) => {
     return { number: sale.invoice_number };
   });
   reply(res, result, 201);
+});
+
+router.put("/receipts/:number/draft", async (req, res) => {
+  const { status, items } = req.body;
+  if (!["draft", "ready"].includes(status)) fail("Status nota tidak valid.");
+  const lines = receiptLines(items);
+  const result = await atomic(async (client) => {
+    const { rows: [sale] } = await client.query(
+      "SELECT id, invoice_number, fulfillment_status FROM transactions WHERE invoice_number=$1 FOR UPDATE",
+      [req.params.number],
+    );
+    if (!sale) fail("Nota tidak ditemukan.", 404);
+    if (sale.fulfillment_status !== "draft") fail("Nota ini sudah bukan draft.", 409);
+    const products = await lockReceiptProducts(client, lines);
+    await client.query("DELETE FROM transaction_items WHERE transaction_id=$1", [sale.id]);
+    await writeReceiptLines(client, sale.id, lines, products);
+    if (status === "ready") await recordSale(client, sale.id, lines);
+    await client.query("UPDATE transactions SET fulfillment_status=$2 WHERE id=$1", [sale.id, status]);
+    return { number: sale.invoice_number };
+  });
+  reply(res, result);
 });
 
 router.patch("/receipts/:number/status", async (req, res) => {
