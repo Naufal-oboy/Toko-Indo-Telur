@@ -1,6 +1,6 @@
 # Database Schema — Toko Indo Telur
 
-Dokumentasi skema database PostgreSQL untuk sistem kasir dan inventori Toko Indo Telur, mencakup migration `001_initial_schema.sql` dan `002_dashboard.sql`.
+Dokumentasi skema database PostgreSQL untuk sistem kasir dan inventori Toko Indo Telur, mencakup migration `001_initial_schema.sql`, `002_dashboard.sql`, dan `003_payment_workflow.sql`.
 
 ## ERD (Entity Relationship Diagram)
 
@@ -37,6 +37,7 @@ erDiagram
     NUMERIC total_amount
     VARCHAR payment_method
     VARCHAR payment_status
+    TIMESTAMPTZ paid_at
     TEXT notes
     TIMESTAMPTZ created_at
   }
@@ -118,8 +119,9 @@ Mencatat setiap transaksi nota penjualan digital.
 - `fulfillment_status TEXT NOT NULL DEFAULT 'delivered'`: Status pemenuhan pesanan dengan batasan CHECK: `('draft', 'ready', 'delivered')`. Stok terpotong saat berstatus `ready` atau langsung `delivered`.
 - `transaction_date TIMESTAMPTZ NOT NULL DEFAULT NOW()`: Tanggal dan waktu transaksi.
 - `total_amount NUMERIC(14, 2) NOT NULL DEFAULT 0`: Total nominal transaksi (otomatis dihitung ulang via trigger dari subtotal `transaction_items`).
-- `payment_method VARCHAR(16) NOT NULL DEFAULT 'cash'`: Metode pembayaran (CHECK: `'cash'`, `'transfer'`).
-- `payment_status VARCHAR(16) NOT NULL DEFAULT 'paid'`: Status pembayaran (CHECK: `'unpaid'`, `'paid'`, `'partial'`).
+- `payment_method VARCHAR(16)`: Metode pembayaran. Bernilai `NULL` untuk nota `unpaid`; bila terisi, nilainya hanya `'cash'` atau `'transfer'`.
+- `payment_status VARCHAR(16) NOT NULL DEFAULT 'unpaid'`: Status pembayaran (CHECK: `'unpaid'`, `'paid'`, `'partial'`).
+- `paid_at TIMESTAMPTZ`: Waktu pembayaran tercatat. `NULL` untuk nota `unpaid`; nilai `NULL` juga tetap sah pada transaksi `paid`/`partial` historis yang memang tidak memiliki timestamp.
 - `notes TEXT`: Catatan tambahan transaksi.
 - `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`: Timestamp rekaman masuk ke database.
 
@@ -179,6 +181,13 @@ Menyimpan pasangan metadata key-value bertipe timestamp untuk operasional dashbo
    - Kolom `transactions.total_amount` selalu diperbarui otomatis oleh trigger `trg_transaction_items_refresh_total` setiap ada penambahan, perubahan, atau penghapusan item di `transaction_items`.
 6. **Relasi Penghapusan (`ON DELETE RESTRICT`):**
    - Seluruh foreign key menggunakan opsi `ON DELETE RESTRICT` sehingga produk yang sudah memiliki riwayat penjualan atau pergerakan stok tidak dapat dihapus secara keras dari database. Gunakan flag soft-delete `is_active = false`.
+7. **Konsistensi Pembayaran:** Migration `003_payment_workflow.sql` menormalkan receipt `unpaid` lama menjadi tanpa metode pembayaran, lalu menegakkan bahwa receipt `unpaid` tidak boleh memiliki `payment_method` maupun `paid_at`. Receipt `paid` dan `partial` wajib mempunyai metode `cash` atau `transfer`; timestamp historis tidak diisi secara sintetis.
+
+## Payment API
+
+`PATCH /api/dashboard/receipts/:number/payment` menerima `{ "paymentMethod": "cash" | "transfer" }`. Endpoint mengunci nota, hanya menerima nota `delivered` yang masih `unpaid`, lalu menyimpan `payment_status = 'paid'`, metode yang dipilih, serta `paid_at = NOW()` secara atomik. Request pembayaran ulang atau pembayaran untuk nota yang belum diantar ditolak dengan `409`.
+
+Dashboard snapshot dan backup JSON v2 menyertakan `paymentMethod`, `paymentStatus`, dan `paidAt`. Restore tetap menerima backup v2 sebelum kolom `paidAt` tersedia dan mempertahankan nilainya sebagai `NULL`; backup lama dengan receipt `unpaid` dan metode default lama dinormalisasi menjadi tanpa metode.
 
 ---
 
