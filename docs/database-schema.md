@@ -185,7 +185,7 @@ Menyimpan pasangan metadata key-value bertipe timestamp untuk operasional dashbo
 
 ## Payment API
 
-`PATCH /api/dashboard/receipts/:number/payment` menerima `{ "paymentMethod": "cash" | "transfer" }`. Endpoint mengunci nota, hanya menerima nota `delivered` yang masih `unpaid`, lalu menyimpan `payment_status = 'paid'`, metode yang dipilih, serta `paid_at = NOW()` secara atomik. Request pembayaran ulang atau pembayaran untuk nota yang belum diantar ditolak dengan `409`.
+`PATCH /api/dashboard/receipts/:number/payment` menerima `{ "paymentMethod": "cash" | "transfer" }`. Endpoint mengunci nota dan, untuk nota `delivered` yang masih `unpaid`, menyimpan `payment_status = 'paid'`, metode yang dipilih, serta `paid_at = NOW()` secara atomik. Jika nota sudah `paid`, request dengan metode sama bersifat idempoten: endpoint mengembalikan metode dan `paid_at` tersimpan tanpa `UPDATE`. Metode berbeda, receipt `partial`, atau receipt yang belum `delivered` ditolak dengan `409`.
 
 Dashboard snapshot dan backup JSON v2 menyertakan `paymentMethod`, `paymentStatus`, dan `paidAt`. Restore tetap menerima backup v2 sebelum kolom `paidAt` tersedia dan mempertahankan nilainya sebagai `NULL`; backup lama dengan receipt `unpaid` dan metode default lama dinormalisasi menjadi tanpa metode.
 

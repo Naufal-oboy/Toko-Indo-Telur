@@ -19,8 +19,8 @@ Sistem Nota Digital & Chatbot Toko Indo Telur adalah aplikasi kasir berbasis web
 | Status | Fitur & Komponen | Keterangan Verifikasi |
 | --- | --- | --- |
 | **Implemented** | API Produk (`/api/products`) | CRUD produk lengkap dengan validasi SKU, nama, harga non-negatif (`GET`, `POST`, `PUT`, `DELETE`). |
-| **Implemented** | API Dashboard (`/api/dashboard`) | Endpoint agregat snapshot data toko (`GET /`), CRUD pelanggan (`POST /customers`), CRUD produk dashboard dengan pengelolaan stok (`POST`, `PUT`, `DELETE /products`), pembuatan nota (`POST /receipts`), pembaruan status pemenuhan (`PATCH /receipts/:number/status`), serta backup & restore (`POST /backup`, `POST /restore`). |
-| **Implemented** | Database & Migration PostgreSQL | Migration `001_initial_schema.sql` (5 tabel inti: `products`, `transactions`, `transaction_items`, `stock_movements`, `sync_records`) dan `002_dashboard.sql` (`customers`, `dashboard_settings`, sequence invoice). Constraint stok, trigger audit movement, dan idempotency teruji. |
+| **Implemented** | API Dashboard (`/api/dashboard`) | Endpoint agregat snapshot data toko (`GET /`), CRUD pelanggan (`POST /customers`), CRUD produk dashboard dengan pengelolaan stok (`POST`, `PUT`, `DELETE /products`), pembuatan nota (`POST /receipts`), pembaruan status pemenuhan (`PATCH /receipts/:number/status`), pencatatan pembayaran (`PATCH /receipts/:number/payment`), serta backup & restore (`POST /backup`, `POST /restore`). |
+| **Implemented** | Database & Migration PostgreSQL | Migration `001_initial_schema.sql` (5 tabel inti), `002_dashboard.sql` (`customers`, `dashboard_settings`, sequence invoice), dan `003_payment_workflow.sql` (status/metode pembayaran serta `paid_at`). Constraint stok, trigger audit movement, dan idempotency teruji. |
 | **Implemented** | Frontend Dashboard Kasir | Antarmuka React 19 + Vite: pembuatan nota 3-langkah (pelanggan, barang, simpan), riwayat nota terfilter, ekspor CSV, manajemen produk dan pelanggan, serta antarmuka backup/restore JSON. |
 | **Implemented** | Ekspor Riwayat CSV | Mengunduh file `.csv` riwayat nota langsung dari browser. |
 | **Implemented** | AI Intent Classification & Product Matcher | Layanan FastAPI port 8000: klasifikasi 5 kelas intent (`sapaan`, `format_pesanan`, `cek_stok`, `cek_harga`, `lainnya`) dengan model `tfidf_linear_svc` (akurasi 0.9250 pada dataset dummy internal AI), pencocokan produk toleran typo via RapidFuzz, dan saran balasan Gemini. |
@@ -58,7 +58,7 @@ Sistem Nota Digital & Chatbot Toko Indo Telur adalah aplikasi kasir berbasis web
 │   ├── src/
 │   │   ├── config/         # Konfigurasi pool PostgreSQL
 │   │   ├── controllers/    # Controller produk
-│   │   ├── database/       # File migrasi SQL (001_initial_schema, 002_dashboard)
+│   │   ├── database/       # File migrasi SQL (001_initial_schema hingga 003_payment_workflow)
 │   │   ├── routes/         # Router Express (products, dashboard)
 │   │   └── server.js       # Entry point Express backend (port 3000)
 │   └── package.json        # Dependensi dan script backend
@@ -86,7 +86,7 @@ npm.cmd run dev
 Buka [Produk dan stok](http://localhost:5173/produk) atau [Nota baru](http://localhost:5173/nota-baru). Database baru dimulai kosong. Tambahkan produk beserta stok awal, lalu tambahkan pelanggan dari Nota baru.
 
 - Jika server terputus setelah halaman terbuka, nota dapat masuk antrean browser. Gunakan **Sinkronkan sekarang** untuk mengirim ulang. Server memeriksa stok dan harga saat menerima nota, serta mencegah nota ganda berdasarkan ID pengiriman.
-- Backup JSON mencakup produk, stok saat ini, pelanggan, dan nota yang sudah diterima server. Pemulihan menggunakan database kosong yang sudah dimigrasi. Riwayat pergerakan stok dari database sumber tetap berada di database sumber.
+- Backup JSON v2 mencakup produk, stok saat ini, pelanggan, dan nota yang sudah diterima server, termasuk status, metode, dan waktu pembayaran bila tersedia. Pemulihan menggunakan database kosong yang sudah dimigrasi; backup historis tanpa `paidAt` tetap didukung. Riwayat pergerakan stok dari database sumber tetap berada di database sumber.
 - Untuk pengujian API dashboard, jalankan `npm.cmd run test:dashboard` dari `backend`. Uji memakai skema PostgreSQL terpisah dan menghapus skema uji setelah selesai.
 
 ## Latar belakang
@@ -199,7 +199,7 @@ Jalankan perintah berikut dari folder `backend/`:
 ```powershell
 cd backend
 npm.cmd install
-npm.cmd run migrate       # Menjalankan migrasi 001 dan 002 secara idempoten
+npm.cmd run migrate       # Menjalankan migrasi 001 hingga 003 secara idempoten
 npm.cmd run db:verify     # Memverifikasi integritas tabel & constraint (rollback aman)
 npm.cmd run dev           # Menjalankan backend di http://localhost:3000
 ```
@@ -306,6 +306,7 @@ Pengujian yang sudah dapat dijalankan dan diverifikasi di repository ini:
 | `DELETE` | `/api/dashboard/products/:id` | Nonaktifkan produk dashboard (soft delete `is_active=false`) |
 | `POST` | `/api/dashboard/receipts` | Buat nota baru (status `draft` / `ready`; potong stok jika `ready`) |
 | `PATCH` | `/api/dashboard/receipts/:number/status` | Ubah status nota (`ready`, `delivered`) |
+| `PATCH` | `/api/dashboard/receipts/:number/payment` | Catat pembayaran `cash` atau `transfer` untuk nota `delivered` yang `unpaid`; retry dengan metode sama mengembalikan pembayaran yang sama tanpa mengubah `paid_at`, sedangkan metode berbeda ditolak. |
 | `POST` | `/api/dashboard/backup` | Unduh cadangan JSON produk, pelanggan, nota, dan stok terkini |
 | `POST` | `/api/dashboard/restore` | Pulihkan cadangan JSON ke database kosong |
 
